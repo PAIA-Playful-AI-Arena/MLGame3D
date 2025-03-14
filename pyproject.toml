@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mlgame3d"
+version = "0.1.0"
+description = "A framework for playing Unity games with Python agents using ML-Agents"
+readme = "README.md"
+authors = [
+    {name = "PAIA", email = "service@paia-tech.com"}
+]
+license = {text = "MIT"}
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+requires-python = ">=3.10"
+dependencies = [
+    "mlagents>=0.30.0",
+    "numpy>=1.21.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/PAIA-Playful-AI-Arena/MLGame3D"
+Repository = "https://github.com/PAIA-Playful-AI-Arena/MLGame3D"
+
+[tool.setuptools]
+packages = ["mlgame3d"]
