@@ -142,6 +142,13 @@ env.close()
 
 ### Creating Custom Agents
 
+You can create custom agents in two ways:
+
+1. By inheriting from the `Agent` class (traditional approach)
+2. By creating a standalone `MLPlay` class (simplified approach)
+
+#### Option 1: Using the Agent Class
+
 You can create custom agents by inheriting from the `Agent` class. These can be defined in your code or in external Python files that can be loaded at runtime.
 
 Here's an example of a custom agent:
@@ -155,7 +162,10 @@ class MyAgent(Agent):
         super().__init__(name)
         self.action_space_info = action_space_info
     
-    def act(self, observations):
+    def update(self, observations, reward=0.0, done=False, info=None):
+        # Update agent state
+        super().update(observations, reward, done, info)
+        
         # Implement your decision logic
         # This is just a simple example that returns all zeros
         if self.action_space_info.is_continuous():
@@ -168,16 +178,75 @@ class MyAgent(Agent):
             return (continuous, discrete)
 ```
 
+#### Option 2: Using the MLPlay Class (Recommended)
+
+You can create a standalone `MLPlay` class without inheriting from any base class. This approach is simpler and more flexible.
+
+Requirements for `MLPlay` class:
+1. The class must be named `MLPlay`
+2. The class must implement `__init__`, `update`, and `reset` methods
+
+Here's an example of a minimal `MLPlay` class:
+
+```python
+import numpy as np
+from typing import Dict, Any
+
+class MLPlay:
+    def __init__(self, action_space_info=None):
+        # Initialize your agent
+        pass
+        
+    def reset(self):
+        # Reset your agent for a new episode
+        pass
+        
+    def update(self, observations, reward=0.0, done=False, info=None):
+        # Process observations and choose an action
+        # This is a simple example that returns a random 2D movement vector
+        action = np.random.uniform(-1, 1, 2)
+        
+        # Normalize the action vector
+        if np.linalg.norm(action) > 0:
+            action = action / np.linalg.norm(action)
+            
+        return action
+```
+
 ### Loading External Agent Files
 
-You can create custom agents in separate Python files and load them at runtime using the command-line interface. The framework will automatically find and instantiate the Agent class in the file.
+You can create custom agents in separate Python files and load them at runtime using the command-line interface. The framework will automatically find and instantiate either an `MLPlay` class or an `Agent` subclass in the file.
 
 Requirements for external agent files:
-1. The file must contain exactly one class that inherits from `Agent`
-2. The class must have a constructor that accepts at least `action_space_info` as its first parameter
-3. The class must implement the `act` method
+1. The file must contain either:
+   - A class named `MLPlay` with `__init__`, `update`, and `reset` methods, or
+   - A class that inherits from `Agent`
+2. If using the `Agent` approach, the class must have a constructor that accepts at least `action_space_info` as its first parameter
 
-Example of an external agent file (`custom_agent.py`):
+Example of an external agent file using `MLPlay` (`simple_mlplay.py`):
+
+```python
+import numpy as np
+from typing import Dict, Any
+
+class MLPlay:
+    def __init__(self, action_space_info=None):
+        self.step_counter = 0
+        
+    def reset(self):
+        self.step_counter = 0
+        
+    def update(self, observations, reward=0.0, done=False, info=None):
+        self.step_counter += 1
+        
+        # Alternate between different actions
+        if self.step_counter % 2 == 0:
+            return np.array([1.0, 0.0])  # Move right
+        else:
+            return np.array([0.0, 1.0])  # Move forward
+```
+
+Example of an external agent file using `Agent` (`custom_agent.py`):
 
 ```python
 import numpy as np
@@ -188,7 +257,10 @@ class CustomAgent(Agent):
         super().__init__(name)
         self.action_space_info = action_space_info
         
-    def act(self, observations):
+    def update(self, observations, reward=0.0, done=False, info=None):
+        # Update agent state
+        super().update(observations, reward, done, info)
+        
         # Implement your decision logic here
         # This is a simple example that alternates between different actions
         if self.step_count % 2 == 0:
@@ -197,19 +269,23 @@ class CustomAgent(Agent):
             return np.array([0.0, 1.0])  # Move forward
 ```
 
-You can then use this agent with the command-line interface:
+You can then use these agents with the command-line interface:
 
 ```bash
+# Using MLPlay class
+python -m mlgame3d --agent1 simple_mlplay.py path/to/your/game.exe
+
+# Using Agent class
 python -m mlgame3d --agent1 custom_agent.py path/to/your/game.exe
 ```
 
-Or load it programmatically:
+Or load them programmatically:
 
 ```python
 from mlgame3d.agent_loader import create_agent_from_file
 
-# Create an agent from an external file
-agent = create_agent_from_file("custom_agent.py", action_space_info)
+# Create an agent from an external file (works with both MLPlay and Agent)
+agent = create_agent_from_file("simple_mlplay.py", action_space_info)
 ```
 
 ## Framework Structure

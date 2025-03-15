@@ -1,31 +1,27 @@
 """
-Proly Agent Example
+Proly MLPlay Example
 
-This file demonstrates how to create a custom agent for the Proly game using the MLGame3D framework.
+This file demonstrates how to create a custom MLPlay class for the Proly game using the MLGame3D framework.
 """
 
 import numpy as np
 from typing import Dict, Any
-from mlgame3d.agent import Agent
 
-class ProlyAgent(Agent):
+class MLPlay:
     """
-    A custom agent designed for the Proly game.
+    A custom MLPlay class designed for the Proly game.
     
-    This agent demonstrates how to process the observations from the Proly game
-    and make decisions based on them.
+    This class demonstrates how to process the observations from the Proly game
+    and make decisions based on them without inheriting from any base class.
     """
     
-    def __init__(self, action_space_info, name: str = "ProlyAgent"):
+    def __init__(self, action_space_info=None):
         """
-        Initialize the Proly agent.
+        Initialize the MLPlay instance.
         
         Args:
-            action_space_info: Information about the action space
-            name: The name of the agent
+            action_space_info: Information about the action space (optional)
         """
-        super().__init__(name)
-        self.action_space_info = action_space_info
         self.step_counter = 0
         self.last_checkpoint_index = -1
         self.target_position = np.zeros(3)
@@ -36,11 +32,10 @@ class ProlyAgent(Agent):
         self.current_time = 0
         self.other_players_info = []
         
-    def reset(self) -> None:
+    def reset(self):
         """
         Reset the agent for a new episode.
         """
-        super().reset()
         self.step_counter = 0
         self.last_checkpoint_index = -1
         self.target_position = np.zeros(3)
@@ -51,15 +46,22 @@ class ProlyAgent(Agent):
         self.current_time = 0
         self.other_players_info = []
         
-    def act(self, observations: Dict[str, np.ndarray]) -> np.ndarray:
+    def update(self, 
+               observations: Dict[str, np.ndarray], 
+               reward: float = 0.0, 
+               done: bool = False, 
+               info: Dict[str, Any] = None) -> np.ndarray:
         """
-        Choose an action based on the current observations.
+        Process observations and choose an action.
         
-        This agent implements a simple strategy to navigate towards the target (next checkpoint)
+        This method implements a simple strategy to navigate towards the target (next checkpoint)
         while avoiding obstacles and other players.
         
         Args:
             observations: A dictionary of observations from the Proly game
+            reward: The reward received
+            done: Whether the episode is done
+            info: Additional information
             
         Returns:
             The action to take (continuous 2D movement vector)
@@ -194,27 +196,3 @@ class ProlyAgent(Agent):
         print(f"Time: {self.current_time}")
         print(f"Other Players: {len(self.other_players_info)}")
         print("---")
-    
-    def observe(self, observations: Dict[str, np.ndarray], reward: float, done: bool, info: Dict[str, Any]) -> None:
-        """
-        Process the observations, reward, and other information from the environment.
-        
-        Args:
-            observations: A dictionary of observations
-            reward: The reward received
-            done: Whether the episode is done
-            info: Additional information
-        """
-        super().observe(observations, reward, done, info)
-        
-        # Parse the new observations
-        self._parse_observations(observations)
-        
-        # Print reward information if significant
-        if abs(reward) > 0.1:
-            print(f"Received reward: {reward:.2f}")
-            
-        if done:
-            print(f"Episode finished after {self.step_count} steps with total reward: {self.total_reward:.2f}")
-            print(f"Final checkpoint: {self.last_checkpoint_index}")
-            print(f"Final time: {self.current_time:.2f}")
