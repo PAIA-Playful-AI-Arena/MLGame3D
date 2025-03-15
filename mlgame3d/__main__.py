@@ -127,35 +127,6 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Path to a Python file containing an MLPlay class for instance 4. If not provided, a RandomMLPlay will be used."
     )
     
-    # For backward compatibility
-    parser.add_argument(
-        "--agent1", "-a1",
-        type=str, 
-        default=None, 
-        help="Alias for --mlplay1"
-    )
-    
-    parser.add_argument(
-        "--agent2", "-a2",
-        type=str, 
-        default=None, 
-        help="Alias for --mlplay2"
-    )
-    
-    parser.add_argument(
-        "--agent3", "-a3",
-        type=str, 
-        default=None, 
-        help="Alias for --mlplay3"
-    )
-    
-    parser.add_argument(
-        "--agent4", "-a4",
-        type=str, 
-        default=None, 
-        help="Alias for --mlplay4"
-    )
-    
     parser.add_argument(
         "game_executable", 
         nargs="?", 
@@ -184,16 +155,6 @@ def validate_mlplay_args(parsed_args):
     # Check if the number of MLPlay instances is valid
     if parsed_args.num_agents < 1 or parsed_args.num_agents > 4:
         raise ValueError(f"Number of MLPlay instances must be between 1 and 4, got {parsed_args.num_agents}")
-    
-    # Handle backward compatibility
-    if parsed_args.mlplay1 is None and parsed_args.agent1 is not None:
-        parsed_args.mlplay1 = parsed_args.agent1
-    if parsed_args.mlplay2 is None and parsed_args.agent2 is not None:
-        parsed_args.mlplay2 = parsed_args.agent2
-    if parsed_args.mlplay3 is None and parsed_args.agent3 is not None:
-        parsed_args.mlplay3 = parsed_args.agent3
-    if parsed_args.mlplay4 is None and parsed_args.agent4 is not None:
-        parsed_args.mlplay4 = parsed_args.agent4
         
     # Check if the MLPlay files exist and are valid
     mlplay_files = [

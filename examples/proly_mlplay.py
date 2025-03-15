@@ -71,10 +71,6 @@ class MLPlay:
         # Parse observations
         self._parse_observations(observations)
         
-        # Print debug information every 100 steps
-        if self.step_counter % 100 == 0:
-            self._print_debug_info()
-        
         # Calculate direction to target
         direction_to_target = self._calculate_direction_to_target()
         
@@ -182,17 +178,3 @@ class MLPlay:
             avoidance_vector = avoidance_vector / np.linalg.norm(avoidance_vector)
             
         return avoidance_vector
-    
-    def _print_debug_info(self) -> None:
-        """
-        Print debug information about the agent's state.
-        """
-        print(f"Step: {self.step_counter}")
-        print(f"Position: {self.current_position}")
-        print(f"Target: {self.target_position}")
-        print(f"Velocity: {self.current_velocity}")
-        print(f"Health: {self.current_health}/{self.max_health}")
-        print(f"Last Checkpoint: {self.last_checkpoint_index}")
-        print(f"Time: {self.current_time}")
-        print(f"Other Players: {len(self.other_players_info)}")
-        print("---")
