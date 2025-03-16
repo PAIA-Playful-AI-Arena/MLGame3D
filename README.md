@@ -58,7 +58,6 @@ Options include:
 - `--seed`, `-s`: Set the random seed (default: 0)
 - `--timeout`, `-t`: Set the timeout for waiting for environment connection (default: 60 seconds)
 - `--episodes`, `-e`: Set the number of episodes to run (default: 5)
-- `--max-steps`, `-ms`: Set the maximum number of steps per episode (default: 1000)
 - `--fps`, `-f`: Set the rendering frame rate (default: 30)
 - `--num-agents`, `-na`: Set the number of MLPlay instances to use (up to 4, default: 1)
 - `--mlplay1`, `-m1`: Path to a Python file containing an MLPlay class for instance 1
@@ -123,7 +122,6 @@ runner = GameRunner(
     env=env,
     mlplays=[mlplay1, mlplay2],  # Pass a list of MLPlay instances
     max_episodes=5,
-    max_steps_per_episode=1000,
     render=True,
     render_fps=30
 )

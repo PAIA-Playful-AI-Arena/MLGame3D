@@ -24,7 +24,6 @@ class GameRunner:
         env: GameEnvironment, 
         mlplays: List[Any],
         max_episodes: int = 10,
-        max_steps_per_episode: int = 1000,
         render: bool = True,
         render_fps: int = 30,
         mlplay_timeout: float = 0.1  # Default timeout for MLPlay actions
@@ -49,7 +48,6 @@ class GameRunner:
             
         self.mlplays = mlplays
         self.max_episodes = max_episodes
-        self.max_steps_per_episode = max_steps_per_episode
         self.render = render
         self.render_fps = render_fps
         self.mlplay_timeout = mlplay_timeout
@@ -73,10 +71,7 @@ class GameRunner:
         for episode in range(self.max_episodes):
             # Reset the environment and MLPlay instances
             observations = self.env.reset()
-            for mlplay in self.mlplays:
-                if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
-                    mlplay.reset()
-            
+
             episode_rewards = [0.0] * len(self.mlplays)
             episode_step = 0
             done = False
@@ -84,7 +79,7 @@ class GameRunner:
             print(f"Starting episode {episode+1}/{self.max_episodes}")
             
             # Run the episode
-            while not done and episode_step < self.max_steps_per_episode:
+            while not done:
                 # Start timing the step
                 step_start_time = time.time()
                 
@@ -123,6 +118,10 @@ class GameRunner:
             print(f"Episode {episode+1} finished: total_reward={sum(episode_rewards):.2f}, steps={episode_step}")
             for i, reward in enumerate(episode_rewards):
                 print(f"  MLPlay {i+1} ({self.mlplay_names[i]}): reward={reward:.2f}")
+
+            for mlplay in self.mlplays:
+                if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
+                    mlplay.reset()
         
         # Return statistics
         return self.get_stats()

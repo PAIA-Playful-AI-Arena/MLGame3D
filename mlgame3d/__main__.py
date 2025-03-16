@@ -79,13 +79,6 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
     
     parser.add_argument(
-        "--max-steps", "-ms",
-        type=int, 
-        default=1000, 
-        help="Maximum number of steps per episode"
-    )
-    
-    parser.add_argument(
         "--fps", "-f",
         type=int, 
         default=30, 
@@ -233,7 +226,6 @@ def main(args: Optional[List[str]] = None) -> int:
                 env=env,
                 mlplays=mlplays,
                 max_episodes=parsed_args.episodes,
-                max_steps_per_episode=parsed_args.max_steps,
                 render=not parsed_args.no_graphics,
                 render_fps=parsed_args.fps,
                 mlplay_timeout=mlplay_timeout
