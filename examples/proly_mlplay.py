@@ -93,43 +93,24 @@ class MLPlay:
         Args:
             observations: A dictionary of observations
         """
-        if "obs_0" not in observations:
-            return
+        self.target_position = observations["target_position"]
+        self.current_position = observations["agent_position"]
+        self.current_velocity = observations["agent_velocity"]
+        
+        if "agent_health" in observations:
+            self.current_health = observations["agent_health"]
             
-        obs = observations["obs_0"]
-        
-        # The first 3 values are the target position (x, y, z)
-        self.target_position = obs[0:3]
-        
-        # The next 3 values are the current position (x, y, z)
-        self.current_position = obs[3:6]
-        
-        # The next 2 values are the current velocity (x, z)
-        self.current_velocity = obs[6:8]
-        
-        # The next 2 values are the current health and normalized health
-        if len(obs) > 9:
-            self.current_health = obs[8]
-            self.max_health = obs[8] / max(0.01, obs[9])  # Avoid division by zero
-        
-        # The next value is the last checkpoint index
-        if len(obs) > 10:
-            self.last_checkpoint_index = int(obs[10])
-        
-        # The next value is the current time
-        if len(obs) > 11:
-            self.current_time = obs[11]
-        
-        # The rest of the values are information about other players
-        # Each player has 4 values: relative position (x, z) and relative velocity (x, z)
-        if len(obs) > 12:
-            self.other_players_info = []
-            for i in range(12, len(obs), 4):
-                if i + 4 <= len(obs):
-                    self.other_players_info.append({
-                        "relative_position": obs[i:i+2],
-                        "relative_velocity": obs[i+2:i+4]
-                    })
+        if "agent_health_normalized" in observations:
+            self.max_health = self.current_health / max(0.01, observations["agent_health_normalized"])
+            
+        if "last_checkpoint_index" in observations:
+            self.last_checkpoint_index = int(observations["last_checkpoint_index"])
+            
+        if "current_time" in observations:
+            self.current_time = observations["current_time"]
+            
+        if "other_players" in observations:
+            self.other_players_info = observations["other_players"]
     
     def _calculate_direction_to_target(self) -> np.ndarray:
         """

@@ -9,6 +9,7 @@ import numpy as np
 from typing import Dict, Tuple, Optional, List, Any
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple, ActionSpec
+from mlgame3d.observation_structure_side_channel import ObservationStructureSideChannel
 
 class GameEnvironment:
     """
@@ -41,17 +42,27 @@ class GameEnvironment:
             raise ValueError("Number of agents must be between 1 and 4")
             
         self.num_agents = num_agents
+        
+        # Create the observation structure side channel
+        self.observation_structure_side_channel = ObservationStructureSideChannel()
+        
+        # Initialize the Unity environment with the side channel
         self.env = UnityEnvironment(
             file_name=file_name,
             worker_id=worker_id,
             base_port=base_port,
             seed=seed,
             no_graphics=no_graphics,
-            timeout_wait=timeout_wait
+            timeout_wait=timeout_wait,
+            side_channels=[self.observation_structure_side_channel]
         )
 
         # Initialize environment
         self.env.reset()
+        
+        # Request the observation structure from Unity
+        if not self.observation_structure_side_channel.has_observation_structure():
+            self.observation_structure_side_channel.request_observation_structure()
 
         self.behavior_names = list(self.env.behavior_specs.keys())
         if not self.behavior_names:
@@ -170,8 +181,18 @@ class GameEnvironment:
             
         agent_step = steps[agent_id]
         obs_dict = {}
-        for i, obs in enumerate(agent_step.obs):
-            obs_dict[f"obs_{i}"] = obs
+        
+        # Parse the observations using the observation structure if available
+        if self.observation_structure_side_channel.has_observation_structure() and len(agent_step.obs) > 0:
+            # Get the first observation (which should be the vector observation)
+            vector_obs = agent_step.obs[0]
+            
+            # Parse the observation using the observation structure
+            parsed_obs = self.observation_structure_side_channel.parse_observation(vector_obs)
+            
+            # Add the parsed observations to the dictionary
+            for key, value in parsed_obs.items():
+                obs_dict[key] = value
             
         return obs_dict
     
