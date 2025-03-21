@@ -170,11 +170,31 @@ class GameRunner:
                 # Cancel the future to prevent it from continuing to run in the background
                 future.cancel()
                 # Use a default action if the MLPlay instance times out
-                actions[i] = np.zeros(self.env.get_action_space_info().continuous_size)
+                action_spec = self.env.get_action_space_info()
+                if action_spec.is_continuous():
+                    actions[i] = np.zeros(action_spec.continuous_size)
+                elif action_spec.is_discrete():
+                    actions[i] = np.zeros(action_spec.discrete_size, dtype=np.int32)
+                else:
+                    # Hybrid action space
+                    actions[i] = (
+                        np.zeros(action_spec.continuous_size),
+                        np.zeros(action_spec.discrete_size, dtype=np.int32)
+                    )
             except Exception as e:
                 print(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
                 # Use a default action if the MLPlay instance fails
-                actions[i] = np.zeros(self.env.get_action_space_info().continuous_size)
+                action_spec = self.env.get_action_space_info()
+                if action_spec.is_continuous():
+                    actions[i] = np.zeros(action_spec.continuous_size)
+                elif action_spec.is_discrete():
+                    actions[i] = np.zeros(action_spec.discrete_size, dtype=np.int32)
+                else:
+                    # Hybrid action space
+                    actions[i] = (
+                        np.zeros(action_spec.continuous_size),
+                        np.zeros(action_spec.discrete_size, dtype=np.int32)
+                    )
         
         return actions
     
