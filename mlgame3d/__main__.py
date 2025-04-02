@@ -176,6 +176,7 @@ def main(args: Optional[List[str]] = None) -> int:
         Exit code.
     """
     parsed_args = parse_args(args)
+    parsed_args.fps *= 5 # Decision period is 0.2 seconds
     
     try:
         # Validate MLPlay-related arguments
