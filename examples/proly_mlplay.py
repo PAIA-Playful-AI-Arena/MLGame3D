@@ -27,6 +27,7 @@ class MLPlay:
         self.target_position = np.zeros(3)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
+        self.agent_forward_direction = np.zeros(2)  # 角色面對的方向 (x, z)
         self.current_health = 0
         self.max_health = 0
         self.current_time = 0
@@ -51,6 +52,7 @@ class MLPlay:
         self.target_position = np.zeros(3)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
+        self.agent_forward_direction = np.zeros(2)  # 角色面對的方向 (x, z)
         self.current_health = 0
         self.max_health = 0
         self.current_time = 0
@@ -150,6 +152,9 @@ class MLPlay:
         self.target_position = observations["target_position"]
         self.current_position = observations["agent_position"]
         self.current_velocity = observations["agent_velocity"]
+        
+        if "agent_forward_direction" in observations:
+            self.agent_forward_direction = observations["agent_forward_direction"]
         
         if "agent_health" in observations:
             self.current_health = observations["agent_health"]
@@ -309,25 +314,46 @@ class MLPlay:
             # Use Throwable items like Bomb (ID 1) or Rock (ID 2) against nearby players
             if self.other_players_info and self.item_use_cooldown <= 0:
                 # Find the closest player
-                closest_player = min(self.other_players_info, 
+                closest_player = min(self.other_players_info,
                                    key=lambda p: np.linalg.norm(p["relative_position"]))
                 closest_distance = np.linalg.norm(closest_player["relative_position"])
                 
                 # If there's a player nearby
                 if closest_distance < 5.0:
-                    # Search for throwable items
-                    for i, item in enumerate(self.inventory_items):
-                        # Check if item is Throwable (type 2)
-                        if item["item_type"] == 2:
-                            # If we're not on this item, select it
-                            if self.selected_item_index != i and self.item_selection_cooldown <= 0:
-                                select_item_action = 1
-                                self.item_selection_cooldown = 5
-                            # If we're already on this item, use it
-                            elif self.selected_item_index == i:
-                                use_item_action = 1
-                                self.item_use_cooldown = 20
-                            return select_item_action, use_item_action
+                    # Calculate direction to the closest player
+                    direction_to_player = closest_player["relative_position"]
+                    if np.linalg.norm(direction_to_player) > 0:
+                        direction_to_player = direction_to_player / np.linalg.norm(direction_to_player)
+                    
+                    # Calculate angle between agent's forward direction and direction to player
+                    angle = self._calculate_angle_between_vectors(self.agent_forward_direction, direction_to_player)
+                    
+                    # Determine if we should throw based on angle
+                    # If angle is small (agent is facing the player), more likely to throw
+                    should_throw = False
+                    
+                    # If angle is less than 15 degrees, definitely throw
+                    if angle < 15:
+                        should_throw = True
+                    # If angle is between 15 and 45 degrees, throw if very close
+                    elif angle < 45:
+                        should_throw = closest_distance < 3.0
+                    # If angle is greater than 45 degrees, don't throw (agent is facing away)
+                    
+                    if should_throw:
+                        # Search for throwable items
+                        for i, item in enumerate(self.inventory_items):
+                            # Check if item is Throwable (type 2)
+                            if item["item_type"] == 2:
+                                # If we're not on this item, select it
+                                if self.selected_item_index != i and self.item_selection_cooldown <= 0:
+                                    select_item_action = 1
+                                    self.item_selection_cooldown = 5
+                                # If we're already on this item, use it
+                                elif self.selected_item_index == i:
+                                    use_item_action = 1
+                                    self.item_use_cooldown = 20
+                                return select_item_action, use_item_action
                         
             # Use SpeedCoffee (Usable item with ID 2) when approaching checkpoints
             if health_percentage > 0.7 and self.item_use_cooldown <= 0:
@@ -417,10 +443,6 @@ class MLPlay:
             item_type = int(best_item["item_type"])
             item_id = int(best_item["item_id"])
             item_name = self._get_item_name(item_type, item_id)
-            
-            # Debug message
-            if self.step_counter % 20 == 0:  # Only print every 20 steps to avoid spamming
-                print(f"Moving toward {item_name} at distance {best_distance:.1f} with priority {pickup_priority:.1f}")
         
         return pickup_vector, pickup_priority
     
@@ -511,3 +533,29 @@ class MLPlay:
             priority *= 0.8
         
         return priority
+        
+    def _calculate_angle_between_vectors(self, vec1: np.ndarray, vec2: np.ndarray) -> float:
+        """
+        Calculate the angle between two 2D vectors in degrees.
+        
+        Args:
+            vec1: First vector
+            vec2: Second vector
+            
+        Returns:
+            The angle between the vectors in degrees (0-180)
+        """
+        # Ensure vectors are normalized
+        if np.linalg.norm(vec1) > 0:
+            vec1 = vec1 / np.linalg.norm(vec1)
+        if np.linalg.norm(vec2) > 0:
+            vec2 = vec2 / np.linalg.norm(vec2)
+            
+        # Calculate dot product
+        dot_product = np.clip(np.dot(vec1, vec2), -1.0, 1.0)
+        
+        # Calculate angle in degrees
+        angle_rad = np.arccos(dot_product)
+        angle_deg = np.degrees(angle_rad)
+        
+        return angle_deg
