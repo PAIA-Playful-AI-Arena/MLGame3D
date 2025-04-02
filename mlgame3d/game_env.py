@@ -10,6 +10,7 @@ from typing import Dict, Tuple, Optional, List, Any
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple, ActionSpec
 from mlgame3d.observation_structure_side_channel import ObservationStructureSideChannel
+from mlgame3d.player_control_side_channel import PlayerControlSideChannel
 
 class GameEnvironment:
     """
@@ -45,6 +46,9 @@ class GameEnvironment:
         
         # Create the observation structure side channel
         self.observation_structure_side_channel = ObservationStructureSideChannel()
+
+        # Initialize the player control side channel
+        self.player_control_channel = PlayerControlSideChannel()
         
         # Initialize the Unity environment with the side channel
         self.env = UnityEnvironment(
@@ -54,8 +58,14 @@ class GameEnvironment:
             seed=seed,
             no_graphics=no_graphics,
             timeout_wait=timeout_wait,
-            side_channels=[self.observation_structure_side_channel]
+            side_channels=[
+                self.observation_structure_side_channel,
+                self.player_control_channel
+            ]
         )
+
+        # Set all players to be controlled
+        self.player_control_channel.set_controlled_players(list(range(num_agents)))
 
         # Initialize environment
         self.env.reset()
