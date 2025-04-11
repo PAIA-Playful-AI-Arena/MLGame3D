@@ -20,13 +20,14 @@ class GameRunner:
     """
     
     def __init__(
-        self, 
-        env: GameEnvironment, 
+        self,
+        env: GameEnvironment,
         mlplays: List[Any],
         max_episodes: int = 10,
         render: bool = True,
         render_fps: int = 30,
-        mlplay_timeout: float = 0.1  # Default timeout for MLPlay actions
+        mlplay_timeout: float = 0.1,  # Default timeout for MLPlay actions
+        game_parameters: Dict[str, Any] = None  # Game parameters to pass to MLPlay instances
     ):
         """
         Initialize the game runner.
@@ -52,6 +53,12 @@ class GameRunner:
         self.render_fps = render_fps
         self.mlplay_timeout = mlplay_timeout
         self.executor = ThreadPoolExecutor(max_workers=len(mlplays))
+        self.game_parameters = game_parameters or {}
+        
+        # Pass game parameters to MLPlay instances if they have parameters in __init__
+        for mlplay in mlplays:
+            if hasattr(mlplay, 'parameters'):
+                mlplay.parameters.update(self.game_parameters)
         
         # Statistics
         self.episode_rewards = []

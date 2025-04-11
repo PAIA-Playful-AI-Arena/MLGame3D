@@ -128,9 +128,11 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
     
     parser.add_argument(
-        "game_params", 
-        nargs="*", 
-        help="Additional parameters to pass to the Unity game"
+        "--game-param", "-gp",
+        action="append",
+        nargs=2,
+        metavar=("KEY", "VALUE"),
+        help="Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters."
     )
     
     return parser.parse_args(args)
@@ -176,7 +178,6 @@ def main(args: Optional[List[str]] = None) -> int:
         Exit code.
     """
     parsed_args = parse_args(args)
-    parsed_args.fps *= 5 # Decision period is 0.2 seconds
     
     try:
         # Validate MLPlay-related arguments
@@ -190,7 +191,8 @@ def main(args: Optional[List[str]] = None) -> int:
             seed=parsed_args.seed,
             no_graphics=parsed_args.no_graphics,
             timeout_wait=parsed_args.timeout,
-            num_agents=parsed_args.num_agents
+            num_agents=parsed_args.num_agents,
+            game_parameters=parsed_args.game_param,
         )
         
         try:
@@ -220,8 +222,29 @@ def main(args: Optional[List[str]] = None) -> int:
             
             # Create a game runner
             # Calculate MLPlay timeout based on fps
-            # Use 80% of the frame time as the timeout to ensure the game loop runs smoothly
-            mlplay_timeout = 0.8 / parsed_args.fps if parsed_args.fps > 0 else 0.1
+            mlplay_timeout = 1 / parsed_args.fps if parsed_args.fps > 0 else 0.1
+            
+            # Process game parameters if provided
+            game_parameters = {}
+            if parsed_args.game_param is not None:
+                for key, value in parsed_args.game_param:
+                    # Try to convert value to appropriate type
+                    try:
+                        # Try as int
+                        game_parameters[key] = int(value)
+                    except ValueError:
+                        try:
+                            # Try as float
+                            game_parameters[key] = float(value)
+                        except ValueError:
+                            # Try as boolean
+                            if value.lower() in ('true', 'yes', '1'):
+                                game_parameters[key] = True
+                            elif value.lower() in ('false', 'no', '0'):
+                                game_parameters[key] = False
+                            else:
+                                # Keep as string
+                                game_parameters[key] = value
             
             runner = GameRunner(
                 env=env,
@@ -229,7 +252,8 @@ def main(args: Optional[List[str]] = None) -> int:
                 max_episodes=parsed_args.episodes,
                 render=not parsed_args.no_graphics,
                 render_fps=parsed_args.fps,
-                mlplay_timeout=mlplay_timeout
+                mlplay_timeout=mlplay_timeout,
+                game_parameters=game_parameters
             )
             
             # Run the game

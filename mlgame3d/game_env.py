@@ -11,6 +11,7 @@ from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple, ActionSpec
 from mlgame3d.observation_structure_side_channel import ObservationStructureSideChannel
 from mlgame3d.player_control_side_channel import PlayerControlSideChannel
+from mlgame3d.game_parameters_side_channel import GameParametersSideChannel
 
 class GameEnvironment:
     """
@@ -25,7 +26,8 @@ class GameEnvironment:
         seed: int = 0,
         no_graphics: bool = False,
         timeout_wait: int = 60,
-        num_agents: int = 1
+        num_agents: int = 1,
+        game_parameters: Optional[List[Tuple[str, Any]]] = None
     ):
         """
         Initialize the game environment.
@@ -50,6 +52,9 @@ class GameEnvironment:
         # Initialize the player control side channel
         self.player_control_channel = PlayerControlSideChannel()
         
+        # Initialize the game parameters side channel
+        self.game_parameters_channel = GameParametersSideChannel()
+        
         # Initialize the Unity environment with the side channel
         self.env = UnityEnvironment(
             file_name=file_name,
@@ -60,12 +65,39 @@ class GameEnvironment:
             timeout_wait=timeout_wait,
             side_channels=[
                 self.observation_structure_side_channel,
-                self.player_control_channel
+                self.player_control_channel,
+                self.game_parameters_channel
             ]
         )
 
         # Set all players to be controlled
         self.player_control_channel.set_controlled_players(list(range(num_agents)))
+
+        # Process game parameters if provided
+        if game_parameters is not None:
+            game_params = {}
+            for key, value in game_parameters:
+                # Try to convert value to appropriate type
+                try:
+                    # Try as int
+                    game_params[key] = int(value)
+                except ValueError:
+                    try:
+                        # Try as float
+                        game_params[key] = float(value)
+                    except ValueError:
+                        # Try as boolean
+                        if value.lower() in ('true', 'yes', '1'):
+                            game_params[key] = True
+                        elif value.lower() in ('false', 'no', '0'):
+                            game_params[key] = False
+                        else:
+                            # Keep as string
+                            game_params[key] = value
+                        
+            if game_params:
+                self.set_game_parameters(game_params)
+                print(f"Set game parameters: {game_params}")
 
         # Initialize environment
         self.env.reset()
@@ -313,3 +345,22 @@ class GameEnvironment:
             The action specification for the default behavior
         """
         return self.behavior_specs[self.default_behavior].action_spec
+        
+    def set_game_parameter(self, key: str, value: Any) -> None:
+        """
+        Set a game parameter.
+        
+        Args:
+            key: The parameter key
+            value: The parameter value
+        """
+        self.game_parameters_channel.set_parameter(key, value)
+        
+    def set_game_parameters(self, parameters: Dict[str, Any]) -> None:
+        """
+        Set multiple game parameters at once.
+        
+        Args:
+            parameters: Dictionary of parameter key-value pairs
+        """
+        self.game_parameters_channel.set_parameters(parameters)

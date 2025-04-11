@@ -12,16 +12,18 @@ class RandomMLPlay:
     A class that takes random actions.
     """
     
-    def __init__(self, action_space_info, name: str = "RandomMLPlay"):
+    def __init__(self, action_space_info, name: str = "RandomMLPlay", parameters: Dict[str, Any] = None):
         """
         Initialize the random MLPlay instance.
         
         Args:
             action_space_info: Information about the action space
             name: The name of the MLPlay instance
+            parameters: Optional dictionary of game parameters
         """
         self.action_space_info = action_space_info
         self.name = name
+        self.parameters = parameters or {}
     
     def reset(self):
         """
