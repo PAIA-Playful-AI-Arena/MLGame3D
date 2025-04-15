@@ -33,7 +33,6 @@ class RandomMLPlay:
     
     def update(self, 
                observations: Dict[str, np.ndarray], 
-               reward: float = 0.0, 
                done: bool = False, 
                info: Dict[str, Any] = None) -> np.ndarray:
         """
@@ -41,7 +40,6 @@ class RandomMLPlay:
         
         Args:
             observations: A dictionary of observations
-            reward: The reward received
             done: Whether the episode is done
             info: Additional information
             

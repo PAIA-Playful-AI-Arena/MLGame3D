@@ -7,6 +7,7 @@ This module provides the command-line interface for the MLGame3D framework.
 import argparse
 import sys
 import os
+import traceback
 from typing import List, Optional
 
 from mlgame3d import __version__
@@ -86,13 +87,6 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
     
     parser.add_argument(
-        "--num-agents", "-na",
-        type=int, 
-        default=1, 
-        help="Number of MLPlay instances to use (up to 4)"
-    )
-    
-    parser.add_argument(
         "--mlplay1", "-m1",
         type=str, 
         default=None, 
@@ -147,17 +141,13 @@ def validate_mlplay_args(parsed_args):
     Raises:
         ValueError: If the arguments are invalid.
     """
-    # Check if the number of MLPlay instances is valid
-    if parsed_args.num_agents < 1 or parsed_args.num_agents > 4:
-        raise ValueError(f"Number of MLPlay instances must be between 1 and 4, got {parsed_args.num_agents}")
-        
     # Check if the MLPlay files exist and are valid
     mlplay_files = [
         parsed_args.mlplay1,
         parsed_args.mlplay2,
         parsed_args.mlplay3,
         parsed_args.mlplay4
-    ][:parsed_args.num_agents]
+    ]
     
     for i, file_path in enumerate(mlplay_files):
         if file_path is not None:
@@ -178,10 +168,22 @@ def main(args: Optional[List[str]] = None) -> int:
         Exit code.
     """
     parsed_args = parse_args(args)
+
+    mlplay_files = [
+        parsed_args.mlplay1,
+        parsed_args.mlplay2,
+        parsed_args.mlplay3,
+        parsed_args.mlplay4
+    ]
     
     try:
         # Validate MLPlay-related arguments
         validate_mlplay_args(parsed_args)
+
+        controlled_players = []
+        for i, value in enumerate(mlplay_files):
+            if value is not None:
+                controlled_players.append(i)
         
         # Create the environment
         env = GameEnvironment(
@@ -191,25 +193,19 @@ def main(args: Optional[List[str]] = None) -> int:
             seed=parsed_args.seed,
             no_graphics=parsed_args.no_graphics,
             timeout_wait=parsed_args.timeout,
-            num_agents=parsed_args.num_agents,
+            controlled_players=controlled_players,
             game_parameters=parsed_args.game_param,
         )
         
         try:
-            # Get information about the action space
-            action_space_info = env.get_action_space_info()
-            
             # Create MLPlay instances
             mlplays = []
-            mlplay_files = [
-                parsed_args.mlplay1,
-                parsed_args.mlplay2,
-                parsed_args.mlplay3,
-                parsed_args.mlplay4
-            ][:parsed_args.num_agents]
+            index = 0
             
-            for i, file_path in enumerate(mlplay_files):
+            for file_path in mlplay_files:
                 if file_path is not None:
+                    action_space_info = env.get_action_space_info(env.behavior_names[index])
+                    index += 1
                     try:
                         mlplay = create_mlplay_from_file(file_path, action_space_info, name=f"MLPlay{i+1}")
                         mlplays.append(mlplay)
@@ -217,8 +213,6 @@ def main(args: Optional[List[str]] = None) -> int:
                         print(f"Error creating MLPlay instance from file {file_path}: {e}")
                         print(f"Using RandomMLPlay for instance {i+1} instead.")
                         mlplays.append(RandomMLPlay(action_space_info, name=f"RandomMLPlay{i+1}"))
-                else:
-                    mlplays.append(RandomMLPlay(action_space_info, name=f"RandomMLPlay{i+1}"))
             
             # Create a game runner
             # Calculate MLPlay timeout based on fps
@@ -251,25 +245,13 @@ def main(args: Optional[List[str]] = None) -> int:
                 mlplays=mlplays,
                 max_episodes=parsed_args.episodes,
                 render=not parsed_args.no_graphics,
-                render_fps=parsed_args.fps,
                 mlplay_timeout=mlplay_timeout,
                 game_parameters=game_parameters
             )
             
             # Run the game
-            stats = runner.run()
-            
-            # Print statistics
-            print("\nRun Statistics:")
-            print(f"Mean Total Reward: {stats['mean_reward']:.2f}")
-            print(f"Max Total Reward: {stats['max_reward']:.2f}")
-            print(f"Min Total Reward: {stats['min_reward']:.2f}")
-            print(f"Mean Steps: {stats['mean_steps']:.2f}")
-            
-            print("\nMLPlay Statistics:")
-            for i, mlplay_mean_reward in enumerate(stats['mlplay_mean_rewards']):
-                print(f"  MLPlay {i+1} ({mlplays[i].name}): Mean Reward: {mlplay_mean_reward:.2f}")
-            
+            runner.run()
+
             return 0
         
         except UnityCommunicatorStoppedException:
@@ -281,7 +263,7 @@ def main(args: Optional[List[str]] = None) -> int:
             env.close()
     
     except Exception as e:
-        print(f"Error: {e}")
+        print(traceback.print_exc())
         return 1
 
 if __name__ == "__main__":

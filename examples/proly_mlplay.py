@@ -70,7 +70,6 @@ class MLPlay:
         
     def update(self, 
                observations: Dict[str, np.ndarray], 
-               reward: float = 0.0, 
                done: bool = False, 
                info: Dict[str, Any] = None) -> np.ndarray:
         """
@@ -245,6 +244,7 @@ class MLPlay:
             ID 1: Bomb
             ID 2: Rock
             ID 3: SpiderWeb
+            ID 4: Shuriken
         - Type 3 (Equipment): 
             ID 1: Stick
         
@@ -272,6 +272,8 @@ class MLPlay:
                 return "Rock"
             elif item_id == 3:
                 return "SpiderWeb"
+            elif item_id == 4:
+                return "Shuriken"
         elif item_type == 3:  # Equipment
             if item_id == 1:
                 return "Stick"
@@ -300,7 +302,7 @@ class MLPlay:
                 # Search for HealCake in inventory
                 for i, item in enumerate(self.inventory_items):
                     # Check if item is Usable (type 1) and is Shield (ID 3)
-                    if (item["item_type"] == 1 and item["item_id"] == 3):
+                    if item["item_type"] == 1 and (item["item_id"] == 1 or item["item_id"] == 3):
                         # If we're not on this item, select it
                         if self.selected_item_index != i and self.item_selection_cooldown <= 0:
                             select_item_action = 1
@@ -311,7 +313,7 @@ class MLPlay:
                             self.item_use_cooldown = 10  # Cooldown to avoid spamming
                         return select_item_action, use_item_action
 
-            # Use Throwable items like Bomb (ID 1) or Rock (ID 2) against nearby players
+            # Use Throwable items like Bomb (ID 1) or Shuriken (ID 4) against nearby players
             if self.other_players_info and self.item_use_cooldown <= 0:
                 # Find the closest player
                 closest_player = min(self.other_players_info,
@@ -336,7 +338,7 @@ class MLPlay:
                     if angle < 15:
                         should_throw = True
                     # If angle is between 15 and 45 degrees, throw if very close
-                    elif angle < 45:
+                    elif angle < 30:
                         should_throw = closest_distance < 3.0
                     # If angle is greater than 45 degrees, don't throw (agent is facing away)
                     
@@ -459,6 +461,7 @@ class MLPlay:
             ID 1: Bomb
             ID 2: Rock
             ID 3: SpiderWeb
+            ID 4: Shuriken
         - Type 3 (Equipment): 
             ID 1: Stick
         
@@ -515,6 +518,8 @@ class MLPlay:
                     priority = 1.1
                 elif item_id == 3:  # SpiderWeb
                     priority = 1.2
+                elif item_id == 4:  # Shuriken
+                    priority = 1.4
             else:
                 # Less valuable when playing alone
                 priority = 0.7
