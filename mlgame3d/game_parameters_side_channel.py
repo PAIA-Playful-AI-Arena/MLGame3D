@@ -38,7 +38,6 @@ class GameParametersSideChannel(SideChannel):
         """
         # Parse response from Unity (e.g., confirmation or current parameter values)
         message = msg.read_string()
-        print(f"Received message from Unity GameParametersSideChannel: {message}")
         
         if message.startswith("CURRENT_PARAMETERS:"):
             try:
@@ -79,7 +78,6 @@ class GameParametersSideChannel(SideChannel):
         outgoing_msg.write_string(f"SET_PARAMETERS:{params_json}")
         self.queue_message_to_send(outgoing_msg)
         self.has_sent_parameters = True
-        print(f"Sent parameters to Unity: {self.parameters}")
     
     def request_current_parameters(self) -> None:
         """
@@ -88,4 +86,3 @@ class GameParametersSideChannel(SideChannel):
         outgoing_msg = OutgoingMessage()
         outgoing_msg.write_string("GET_PARAMETERS")
         self.queue_message_to_send(outgoing_msg)
-        print("Requested current parameters from Unity")

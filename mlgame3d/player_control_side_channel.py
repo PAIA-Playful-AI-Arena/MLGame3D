@@ -13,7 +13,7 @@ class PlayerControlSideChannel(SideChannel):
     A side channel for sending player control information to Unity.
     
     This side channel sends information about which players should be controlled
-    by MLGame3D.
+    by MLGame3D and in which mode (manual or AI).
     """
     
     def __init__(self) -> None:
@@ -35,19 +35,31 @@ class PlayerControlSideChannel(SideChannel):
         # Currently, we don't expect any messages from Unity
         pass
     
-    def set_controlled_players(self, player_ids: List[int]) -> None:
+    def set_controlled_players(self, player_ids: List[int], control_modes: List[str] = None) -> None:
         """
-        Set which players should be controlled by MLGame3D.
+        Set which players should be controlled by MLGame3D and in which mode.
         
         Args:
             player_ids: A list of player IDs to control (0-3 for P1-P4).
+            control_modes: A list of control modes ("manual" or "mlplay") for each player.
+                           If None, all players are assumed to be in "mlplay" mode.
         """
         # Map player_ids (0-3) to PlayerID enum in Unity (P1-P4)
         player_enums = [f"P{player_id + 1}" for player_id in player_ids]
         
+        # If control_modes is not provided, default to "mlplay" for all players
+        if control_modes is None:
+            control_modes = ["mlplay"] * len(player_ids)
+        
+        # Ensure control_modes has the same length as player_ids
+        if len(control_modes) != len(player_ids):
+            raise ValueError("control_modes must have the same length as player_ids")
+        
+        # Create player info strings with format "P1:manual", "P2:mlplay", etc.
+        player_info = [f"{player_enums[i]}:{control_modes[i]}" for i in range(len(player_ids))]
+        
         # Create an outgoing message
         outgoing_msg = OutgoingMessage()
-        outgoing_msg.write_string(f"CONTROL_PLAYERS:{','.join(player_enums)}")
+        outgoing_msg.write_string(f"CONTROL_PLAYERS:{','.join(player_info)}")
         self.queue_message_to_send(outgoing_msg)
         self.has_sent_control_message = True
-        print(f"Sent control message to Unity: CONTROL_PLAYERS:{','.join(player_enums)}")

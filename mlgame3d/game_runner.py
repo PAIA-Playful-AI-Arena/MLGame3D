@@ -4,7 +4,6 @@ Game Runner Module
 This module provides a class for running games with MLPlay instances in Unity environments asynchronously.
 """
 
-import time
 import numpy as np
 from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
@@ -26,7 +25,8 @@ class GameRunner:
         max_episodes: int = 10,
         render: bool = True,
         mlplay_timeout: float = 0.1,  # Default timeout for MLPlay actions
-        game_parameters: Dict[str, Any] = None  # Game parameters to pass to MLPlay instances
+        game_parameters: Dict[str, Any] = None,  # Game parameters to pass to MLPlay instances
+        mlplay_to_behavior_map: Dict[int, str] = None  # Mapping from MLPlay index to behavior name
     ):
         """
         Initialize the game runner.
@@ -44,8 +44,16 @@ class GameRunner:
         self.max_episodes = max_episodes
         self.render = render
         self.mlplay_timeout = mlplay_timeout
-        self.executor = ThreadPoolExecutor(max_workers=len(mlplays))
+        if len(mlplays) > 0:
+            self.executor = ThreadPoolExecutor(max_workers=len(mlplays))
         self.game_parameters = game_parameters or {}
+        self.mlplay_to_behavior_map = mlplay_to_behavior_map or {}
+        
+        # If no mapping is provided, create a default mapping
+        if not self.mlplay_to_behavior_map and len(mlplays) > 0:
+            for i in range(len(mlplays)):
+                if i < len(env.behavior_names):
+                    self.mlplay_to_behavior_map[i] = env.behavior_names[i]
         
         # Pass game parameters to MLPlay instances if they have parameters in __init__
         for mlplay in mlplays:
@@ -113,9 +121,20 @@ class GameRunner:
         futures = []
         for i, mlplay in enumerate(self.mlplays):
             if hasattr(mlplay, 'update') and callable(getattr(mlplay, 'update')):
+                # Get the behavior name for this MLPlay instance
+                behavior_name = self.mlplay_to_behavior_map.get(i)
+                
+                if behavior_name is None:
+                    print(f"Warning: No behavior name mapped for MLPlay instance {i}. Skipping.")
+                    continue
+                    
+                if behavior_name not in observations:
+                    print(f"Warning: Behavior name {behavior_name} not found in observations. Skipping.")
+                    continue
+                
                 future = self.executor.submit(
                     mlplay.update,
-                    observations[self.env.behavior_names[i]],
+                    observations[behavior_name],
                     done,
                     info
                 )
@@ -126,37 +145,42 @@ class GameRunner:
         # Wait for all futures to complete with timeout
         actions = {}  # Initialize with None
         for future, i in futures:
+            # Get the behavior name for this MLPlay instance
+            behavior_name = self.mlplay_to_behavior_map.get(i)
+            if behavior_name is None:
+                continue
+                
             try:
                 # Wait for the MLPlay instance to update with timeout
                 action = future.result(timeout=self.mlplay_timeout)
-                actions[self.env.behavior_names[i]] = [action]
+                actions[behavior_name] = [action]
             except TimeoutError:
                 print(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
                 # Cancel the future to prevent it from continuing to run in the background
                 future.cancel()
                 # Use a default action if the MLPlay instance times out
-                action_spec = self.env.get_action_space_info(self.env.behavior_names[i])
+                action_spec = self.env.get_action_space_info(behavior_name)
                 if action_spec.is_continuous():
-                    actions[self.env.behavior_names[i]] = [np.zeros(action_spec.continuous_size)]
+                    actions[behavior_name] = [np.zeros(action_spec.continuous_size)]
                 elif action_spec.is_discrete():
-                    actions[self.env.behavior_names[i]] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
+                    actions[behavior_name] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
                 else:
                     # Hybrid action space
-                    actions[self.env.behavior_names[i]] = [(
+                    actions[behavior_name] = [(
                         np.zeros(action_spec.continuous_size),
                         np.zeros(action_spec.discrete_size, dtype=np.int32)
                     )]
             except Exception as e:
                 print(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
                 # Use a default action if the MLPlay instance fails
-                action_spec = self.env.get_action_space_info(self.env.behavior_names[i])
+                action_spec = self.env.get_action_space_info(behavior_name)
                 if action_spec.is_continuous():
-                    actions[self.env.behavior_names[i]] = [np.zeros(action_spec.continuous_size)]
+                    actions[behavior_name] = [np.zeros(action_spec.continuous_size)]
                 elif action_spec.is_discrete():
-                    actions[self.env.behavior_names[i]] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
+                    actions[behavior_name] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
                 else:
                     # Hybrid action space
-                    actions[self.env.behavior_names[i]] = [(
+                    actions[behavior_name] = [(
                         np.zeros(action_spec.continuous_size),
                         np.zeros(action_spec.discrete_size, dtype=np.int32)
                     )]

@@ -86,32 +86,40 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Frames per second for rendering"
     )
     
+    # Add a new argument for auto-numbered AI instances
     parser.add_argument(
-        "--mlplay1", "-m1",
-        type=str, 
-        default=None, 
-        help="Path to a Python file containing an MLPlay class for instance 1. If not provided, a RandomMLPlay will be used."
+        "--ai", "-i",
+        action="append",
+        type=str,
+        help="Control mode for an instance (auto-numbered). Can be specified multiple times. Each occurrence is equivalent to --ai1, --ai2, etc. in order."
     )
     
     parser.add_argument(
-        "--mlplay2", "-m2",
-        type=str, 
-        default=None, 
-        help="Path to a Python file containing an MLPlay class for instance 2. If not provided, a RandomMLPlay will be used."
+        "--ai1", "-i1",
+        type=str,
+        default="manual",
+        help="Control mode for instance 1. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default)."
     )
     
     parser.add_argument(
-        "--mlplay3", "-m3",
-        type=str, 
-        default=None, 
-        help="Path to a Python file containing an MLPlay class for instance 3. If not provided, a RandomMLPlay will be used."
+        "--ai2", "-i2",
+        type=str,
+        default="manual",
+        help="Control mode for instance 2. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default)."
     )
     
     parser.add_argument(
-        "--mlplay4", "-m4",
-        type=str, 
-        default=None, 
-        help="Path to a Python file containing an MLPlay class for instance 4. If not provided, a RandomMLPlay will be used."
+        "--ai3", "-i3",
+        type=str,
+        default="manual",
+        help="Control mode for instance 3. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default)."
+    )
+    
+    parser.add_argument(
+        "--ai4", "-i4",
+        type=str,
+        default="manual",
+        help="Control mode for instance 4. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default)."
     )
     
     parser.add_argument(
@@ -131,6 +139,35 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     
     return parser.parse_args(args)
 
+def process_ai_settings(parsed_args):
+    """
+    Process AI settings from command-line arguments.
+    
+    This function handles both the traditional --ai1, --ai2, etc. arguments
+    and the new auto-numbered --ai argument.
+    
+    Args:
+        parsed_args: Parsed command-line arguments.
+        
+    Returns:
+        List of AI settings.
+    """
+    # Start with the default AI settings
+    ai_settings = [
+        parsed_args.ai1,
+        parsed_args.ai2,
+        parsed_args.ai3,
+        parsed_args.ai4
+    ]
+    
+    # Apply auto-numbered AI arguments if provided
+    if parsed_args.ai:
+        for i, ai_arg in enumerate(parsed_args.ai):
+            if i < 4:  # We only support up to 4 AI instances
+                ai_settings[i] = ai_arg
+    
+    return ai_settings
+
 def validate_mlplay_args(parsed_args):
     """
     Validate MLPlay-related command-line arguments.
@@ -141,21 +178,17 @@ def validate_mlplay_args(parsed_args):
     Raises:
         ValueError: If the arguments are invalid.
     """
-    # Check if the MLPlay files exist and are valid
-    mlplay_files = [
-        parsed_args.mlplay1,
-        parsed_args.mlplay2,
-        parsed_args.mlplay3,
-        parsed_args.mlplay4
-    ]
+    # Process AI settings
+    ai_settings = process_ai_settings(parsed_args)
     
-    for i, file_path in enumerate(mlplay_files):
-        if file_path is not None:
-            if not os.path.exists(file_path):
-                raise ValueError(f"MLPlay file not found: {file_path}")
+    # Check if the AI files exist and are valid
+    for i, setting in enumerate(ai_settings):
+        if setting not in ["hidden", "manual"] and setting is not None:
+            if not os.path.exists(setting):
+                raise ValueError(f"MLPlay file not found: {setting}")
                 
-            if not validate_mlplay_file(file_path):
-                raise ValueError(f"Invalid MLPlay file: {file_path}")
+            if not validate_mlplay_file(setting):
+                raise ValueError(f"Invalid MLPlay file: {setting}")
 
 def main(args: Optional[List[str]] = None) -> int:
     """
@@ -169,21 +202,22 @@ def main(args: Optional[List[str]] = None) -> int:
     """
     parsed_args = parse_args(args)
 
-    mlplay_files = [
-        parsed_args.mlplay1,
-        parsed_args.mlplay2,
-        parsed_args.mlplay3,
-        parsed_args.mlplay4
-    ]
+    # Process AI settings
+    ai_settings = process_ai_settings(parsed_args)
     
     try:
         # Validate MLPlay-related arguments
         validate_mlplay_args(parsed_args)
 
         controlled_players = []
-        for i, value in enumerate(mlplay_files):
-            if value is not None:
+        control_modes = []
+        
+        for i, setting in enumerate(ai_settings):
+            if setting is not None and setting != "hidden":
                 controlled_players.append(i)
+                # Set control mode: "mlplay" for Python files, "manual" for manual control
+                mode = "manual" if setting == "manual" else "mlplay"
+                control_modes.append(mode)
         
         # Create the environment
         env = GameEnvironment(
@@ -194,25 +228,46 @@ def main(args: Optional[List[str]] = None) -> int:
             no_graphics=parsed_args.no_graphics,
             timeout_wait=parsed_args.timeout,
             controlled_players=controlled_players,
+            control_modes=control_modes,
             game_parameters=parsed_args.game_param,
         )
         
         try:
             # Create MLPlay instances
             mlplays = []
-            index = 0
+            mlplay_to_behavior_map = {}  # Map to track which MLPlay corresponds to which behavior
             
-            for file_path in mlplay_files:
-                if file_path is not None:
-                    action_space_info = env.get_action_space_info(env.behavior_names[index])
-                    index += 1
-                    try:
-                        mlplay = create_mlplay_from_file(file_path, action_space_info, name=f"MLPlay{i+1}")
-                        mlplays.append(mlplay)
-                    except Exception as e:
-                        print(f"Error creating MLPlay instance from file {file_path}: {e}")
-                        print(f"Using RandomMLPlay for instance {i+1} instead.")
-                        mlplays.append(RandomMLPlay(action_space_info, name=f"RandomMLPlay{i+1}"))
+            # First, create a mapping from player index to behavior name
+            player_to_behavior_map = {}
+            for i, player_idx in enumerate(controlled_players):
+                if i < len(env.behavior_names) and control_modes[i] == "mlplay":
+                    player_to_behavior_map[player_idx] = env.behavior_names[i]
+            
+            # Now create MLPlay instances for each AI setting
+            mlplay_index = 0
+            for i, setting in enumerate(ai_settings):
+                if setting not in ["hidden", "manual"] and setting is not None:
+                    # Find the corresponding player index
+                    player_idx = i
+                    
+                    # Check if this player is in the controlled players list
+                    if player_idx in player_to_behavior_map:
+                        behavior_name = player_to_behavior_map[player_idx]
+                        action_space_info = env.get_action_space_info(behavior_name)
+                        try:
+                            mlplay = create_mlplay_from_file(setting, action_space_info, name=f"MLPlay{player_idx+1}")
+                            mlplays.append(mlplay)
+                            mlplay_to_behavior_map[mlplay_index] = behavior_name
+                            mlplay_index += 1
+                        except Exception as e:
+                            print(f"Error creating MLPlay instance from file {setting}: {e}")
+                            print(f"Using RandomMLPlay for player {player_idx+1} instead.")
+                            mlplay = RandomMLPlay(action_space_info, name=f"RandomMLPlay{player_idx+1}")
+                            mlplays.append(mlplay)
+                            mlplay_to_behavior_map[mlplay_index] = behavior_name
+                            mlplay_index += 1
+                    else:
+                        print(f"Warning: Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
             
             # Create a game runner
             # Calculate MLPlay timeout based on fps
@@ -246,7 +301,8 @@ def main(args: Optional[List[str]] = None) -> int:
                 max_episodes=parsed_args.episodes,
                 render=not parsed_args.no_graphics,
                 mlplay_timeout=mlplay_timeout,
-                game_parameters=game_parameters
+                game_parameters=game_parameters,
+                mlplay_to_behavior_map=mlplay_to_behavior_map
             )
             
             # Run the game

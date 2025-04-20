@@ -19,7 +19,7 @@ class GameEnvironment:
     """
     
     def __init__(
-        self, 
+        self,
         file_name: Optional[str] = None,
         worker_id: int = 0,
         base_port: Optional[int] = None,
@@ -27,6 +27,7 @@ class GameEnvironment:
         no_graphics: bool = False,
         timeout_wait: int = 60,
         controlled_players: List[int] = [],
+        control_modes: List[str] = [],
         game_parameters: Optional[List[Tuple[str, Any]]] = None
     ):
         """
@@ -40,6 +41,7 @@ class GameEnvironment:
             no_graphics: Whether to run the Unity simulator in no-graphics mode.
             timeout_wait: Time (in seconds) to wait for connection from environment.
             controlled_players: List of player IDs to control.
+            control_modes: List of control modes ("manual" or "mlplay") for each player.
         """
         # Create the observation structure side channel
         self.observation_structure_side_channel = ObservationStructureSideChannel()
@@ -65,8 +67,8 @@ class GameEnvironment:
             ]
         )
 
-        # Set all players to be controlled
-        self.player_control_channel.set_controlled_players(controlled_players)
+        # Set all players to be controlled with their respective modes
+        self.player_control_channel.set_controlled_players(controlled_players, control_modes)
 
         # Process game parameters if provided
         if game_parameters is not None:
@@ -92,7 +94,6 @@ class GameEnvironment:
                         
             if game_params:
                 self.set_game_parameters(game_params)
-                print(f"Set game parameters: {game_params}")
 
         # Initialize environment
         self.env.reset()
@@ -151,15 +152,19 @@ class GameEnvironment:
                 - done: Whether the episode is done
                 - info: Additional information
         """
-        for behavior_name in self.behavior_names:
-            if len(actions[behavior_name]) != 1:
-                raise ValueError(f"Expected 1 actions, but got {len(actions[behavior_name])}")
+        if actions:
+            for behavior_name in self.behavior_names:
+                if behavior_name not in actions:
+                    continue
+
+                if len(actions[behavior_name]) != 1:
+                    raise ValueError(f"Expected 1 actions, but got {len(actions[behavior_name])}")
+                    
+                # Create a combined action tuple for all agents
+                action_tuple = self._create_combined_action_tuple(actions, behavior_name)
                 
-            # Create a combined action tuple for all agents
-            action_tuple = self._create_combined_action_tuple(actions, behavior_name)
-            
-            # Set the actions for the default behavior
-            self.env.set_actions(behavior_name, action_tuple)
+                # Set the actions for the default behavior
+                self.env.set_actions(behavior_name, action_tuple)
             
         # Step the environment
         self.env.step()

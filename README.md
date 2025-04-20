@@ -45,7 +45,7 @@ pip install --use-pep517 -e .
 MLGame3D provides a command-line interface that allows you to launch games directly from the command line:
 
 ```bash
-python -m mlgame3d [options] <Unity game executable> [game_params]
+python -m mlgame3d [options] <Unity game executable>
 ```
 
 Options include:
@@ -59,11 +59,12 @@ Options include:
 - `--timeout`, `-t`: Set the timeout for waiting for environment connection (default: 60 seconds)
 - `--episodes`, `-e`: Set the number of episodes to run (default: 5)
 - `--fps`, `-f`: Set the rendering frame rate (default: 30)
-- `--num-agents`, `-na`: Set the number of MLPlay instances to use (up to 4, default: 1)
-- `--mlplay1`, `-m1`: Path to a Python file containing an MLPlay class for instance 1
-- `--mlplay2`, `-m2`: Path to a Python file containing an MLPlay class for instance 2
-- `--mlplay3`, `-m3`: Path to a Python file containing an MLPlay class for instance 3
-- `--mlplay4`, `-m4`: Path to a Python file containing an MLPlay class for instance 4
+- `--ai`, `-i`: Control mode for an instance (auto-numbered). Can be specified multiple times. Each occurrence is equivalent to `--ai1`, `--ai2`, etc. in order.
+- `--ai1`, `-i1`: Control mode for instance 1. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
+- `--ai2`, `-i2`: Control mode for instance 2. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
+- `--ai3`, `-i3`: Control mode for instance 3. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
+- `--ai4`, `-i4`: Control mode for instance 4. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
+- `--game-param`, `-gp`: Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters.
 
 Examples:
 
@@ -84,13 +85,17 @@ python -m mlgame3d -ng path/to/your/game.exe
 # Set random seed and worker ID
 python -m mlgame3d -s 42 -w 1 path/to/your/game.exe
 
-# Use 2 MLPlay instances, with a custom MLPlay for the first one
-python -m mlgame3d --num-agents 2 --mlplay1 examples/simple_mlplay.py path/to/your/game.exe
-# Or using short options
-python -m mlgame3d -na 2 -m1 examples/simple_mlplay.py path/to/your/game.exe
+# Use 2 AI instances, with a custom MLPlay for the first one and manual control for the second one
+python -m mlgame3d -i examples/simple_mlplay.py -i manual path/to/your/game.exe
 
-# Use 4 MLPlay instances, with custom MLPlay for all of them
-python -m mlgame3d -na 4 -m1 mlplay1.py -m2 mlplay2.py -m3 mlplay3.py -m4 mlplay4.py path/to/your/game.exe
+# Use 3 AI instances: first controlled by MLPlay, second hidden, third controlled by another MLPlay
+python -m mlgame3d -i mlplay1.py -i hidden -i mlplay2.py path/to/your/game.exe
+
+# Specify control modes for specific player positions
+python -m mlgame3d -i1 mlplay1.py -i2 manual -i3 mlplay2.py -i4 hidden path/to/your/game.exe
+
+# Pass game parameters (checkpoint_count and checkpoint_mode)
+python -m mlgame3d -i examples/simple_mlplay.py -gp checkpoint_count 10 -gp checkpoint_mode random path/to/your/game.exe
 ```
 
 ### Code Interface
@@ -102,37 +107,43 @@ from mlgame3d.game_env import GameEnvironment
 from mlgame3d.mlplay import RandomMLPlay
 from mlgame3d.game_runner import GameRunner
 
-# Create the environment with multiple MLPlay instances
+# Create the environment with controlled players
 env = GameEnvironment(
     file_name="YourUnityGame.exe",  # Or None to connect to a running Unity editor
     worker_id=0,
     no_graphics=False,
-    num_agents=2  # Specify the number of MLPlay instances (up to 4)
+    controlled_players=[0, 1],  # Control P1 and P2
+    control_modes=["mlplay", "mlplay"],  # Both controlled by MLPlay
+    game_parameters=[("checkpoint_count", 10), ("checkpoint_mode", "random")]  # Game parameters
 )
 
-# Get information about the action space
-action_space_info = env.get_action_space_info()
+# Get information about the action space for each behavior
+action_space_info_p1 = env.get_action_space_info(env.behavior_names[0])
+action_space_info_p2 = env.get_action_space_info(env.behavior_names[1])
 
-# Create multiple MLPlay instances
-mlplay1 = RandomMLPlay(action_space_info, name="MLPlay1")
-mlplay2 = RandomMLPlay(action_space_info, name="MLPlay2")
+# Create MLPlay instances
+mlplay1 = RandomMLPlay(action_space_info_p1, name="MLPlay1")
+mlplay2 = RandomMLPlay(action_space_info_p2, name="MLPlay2")
 
-# Create a game runner with multiple MLPlay instances
+# Create a mapping from MLPlay index to behavior name
+mlplay_to_behavior_map = {
+    0: env.behavior_names[0],  # First MLPlay controls first behavior
+    1: env.behavior_names[1]   # Second MLPlay controls second behavior
+}
+
+# Create a game runner
 runner = GameRunner(
     env=env,
-    mlplays=[mlplay1, mlplay2],  # Pass a list of MLPlay instances
+    mlplays=[mlplay1, mlplay2],
     max_episodes=5,
     render=True,
-    render_fps=30
+    mlplay_timeout=0.1,  # Timeout for MLPlay actions in seconds
+    game_parameters={"checkpoint_count": 10, "checkpoint_mode": "random"},
+    mlplay_to_behavior_map=mlplay_to_behavior_map
 )
 
 # Run the game
-stats = runner.run()
-
-# Print statistics
-print(f"Mean Total Reward: {stats['mean_reward']:.2f}")
-print(f"MLPlay 1 Mean Reward: {stats['mlplay_mean_rewards'][0]:.2f}")
-print(f"MLPlay 2 Mean Reward: {stats['mlplay_mean_rewards'][1]:.2f}")
+runner.run()
 
 # Close the environment
 env.close()
@@ -207,7 +218,13 @@ class MLPlay:
 You can then use these MLPlay classes with the command-line interface:
 
 ```bash
-python -m mlgame3d --mlplay1 simple_mlplay.py path/to/your/game.exe
+python -m mlgame3d -i simple_mlplay.py path/to/your/game.exe
+```
+
+Or specify a specific player position:
+
+```bash
+python -m mlgame3d -i1 simple_mlplay.py path/to/your/game.exe
 ```
 
 Or load them programmatically:
@@ -234,6 +251,10 @@ mlplay = create_mlplay_from_file("simple_mlplay.py", action_space_info)
 - If you want to connect to a Unity editor, make sure the editor is running and the game scene is loaded
 - If you want to connect to a Unity executable, make sure to provide the correct file path
 - When using multiple MLPlay instances, make sure your Unity environment supports the requested number of agents
+- Control modes:
+  - `manual`: Player is controlled manually via keyboard/gamepad
+  - `hidden`: Player is hidden (not visible in the game)
+  - Python file path: Player is controlled by an MLPlay instance loaded from the specified file
 
 ## Contributing
 
