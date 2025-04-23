@@ -106,19 +106,12 @@ class GameEnvironment:
         if not self.behavior_names:
             raise ValueError("No behaviors found in the environment")
         
-        # Default to the first behavior if there are multiple
-        # self.default_behavior = self.behavior_names[0]
-        
         # Store behavior specs for easy access
         self.behavior_specs = self.env.behavior_specs
         
         # Get initial observations
         for behavior_name in self.behavior_names:
             self.decision_steps, self.terminal_steps = self.env.get_steps(behavior_name)
-        
-            # Check if the environment supports the requested number of agents
-            if len(self.decision_steps) != 1:
-                raise ValueError(f"Expected 1 agent for behavior '{behavior_name}', but got {len(self.decision_steps)}")
         
     def reset(self) -> List[Dict[str, np.ndarray]]:
         """
@@ -131,6 +124,11 @@ class GameEnvironment:
         observations = {}
         for behavior_name in self.behavior_names:
             self.decision_steps, self.terminal_steps = self.env.get_steps(behavior_name)
+
+            if (len(self.decision_steps) == 0):
+                # If there are no agents, return empty observations
+                observations[behavior_name] = {}
+                continue
         
             # Return observations for each agent
             agent_id = self.decision_steps.agent_id[0]
@@ -154,11 +152,8 @@ class GameEnvironment:
         """
         if actions:
             for behavior_name in self.behavior_names:
-                if behavior_name not in actions:
+                if behavior_name not in actions or len(actions[behavior_name]) == 0:
                     continue
-
-                if len(actions[behavior_name]) != 1:
-                    raise ValueError(f"Expected 1 actions, but got {len(actions[behavior_name])}")
                     
                 # Create a combined action tuple for all agents
                 action_tuple = self._create_combined_action_tuple(actions, behavior_name)
@@ -171,6 +166,7 @@ class GameEnvironment:
 
         observations = {}
         rewards = {}
+        info = {}
         
         for behavior_name in self.behavior_names:
             # Get the new decision steps and terminal steps
@@ -184,15 +180,17 @@ class GameEnvironment:
                 agent_id = self.terminal_steps.agent_id[0]
                 observations[behavior_name] = self._get_obs_dict_for_agent(self.terminal_steps, agent_id)
                 rewards[behavior_name] = self.terminal_steps.reward[0]
-                        
                 info = {"interrupted": [self.terminal_steps.interrupted[0]]}
             else:
                 # If the episode is not done, get observations from decision steps
-                agent_id = self.decision_steps.agent_id[0]
-                observations[behavior_name] = self._get_obs_dict_for_agent(self.decision_steps, agent_id)
-                rewards[behavior_name] = self.decision_steps.reward[0]
-                        
-                info = {}
+                if (len(self.decision_steps) == 0):
+                    # If there are no agents, return empty observations
+                    observations[behavior_name] = {}
+                    rewards[behavior_name] = 0.0
+                else:
+                    agent_id = self.decision_steps.agent_id[0]
+                    observations[behavior_name] = self._get_obs_dict_for_agent(self.decision_steps, agent_id)
+                    rewards[behavior_name] = self.decision_steps.reward[0]
         
         return observations, rewards, done, info
     

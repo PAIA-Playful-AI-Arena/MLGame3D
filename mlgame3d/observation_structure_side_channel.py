@@ -139,6 +139,14 @@ class ObservationStructureSideChannel(SideChannel):
                 total_size += 2
             elif item_type == "float" or item_type == "int":
                 total_size += 1
+            elif item_type == "Grid":
+                # For grid, calculate based on grid_size and items
+                grid_size = item.get("grid_size", 0)
+                sub_items = item.get("items", [])
+                sub_item_size = self._calculate_item_size(sub_items)
+                
+                # Grid is a 2D structure, so we square the grid_size
+                total_size += sub_item_size * grid_size * grid_size
             elif item_type == "List":
                 # For nested lists, calculate recursively
                 sub_items = item.get("items", [])
@@ -227,6 +235,31 @@ class ObservationStructureSideChannel(SideChannel):
                 list_items.append(item_data)
             
             result = list_items
+        elif item_type == "Grid":
+            # Handle grid of items
+            grid_size = item.get("grid_size", 0)
+            items = item.get("items", [])
+            
+            # Create a 2D grid structure
+            grid_data = np.zeros((grid_size, grid_size), dtype=object)
+            
+            # Parse each cell in the grid
+            for row in range(grid_size):
+                for col in range(grid_size):
+                    cell_data = {}
+                    for sub_item in items:
+                        sub_key = sub_item.get("key", "")
+                        if not sub_key:
+                            continue
+                        
+                        # Parse the sub-item recursively
+                        sub_result, next_index = self._parse_item(sub_item, observation, current_index)
+                        cell_data[sub_key] = sub_result
+                        current_index = next_index
+                    
+                    grid_data[row, col] = cell_data
+            
+            result = grid_data
         else:
             # Unknown type, skip
             print(f"Warning: Unknown type {item_type} for {item.get('key', '')}")

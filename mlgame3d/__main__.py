@@ -240,8 +240,8 @@ def main(args: Optional[List[str]] = None) -> int:
             # First, create a mapping from player index to behavior name
             player_to_behavior_map = {}
             for i, player_idx in enumerate(controlled_players):
-                if i < len(env.behavior_names) and control_modes[i] == "mlplay":
-                    player_to_behavior_map[player_idx] = env.behavior_names[i]
+                if player_idx < len(env.behavior_names) and control_modes[i] == "mlplay":
+                    player_to_behavior_map[player_idx] = env.behavior_names[player_idx]
             
             # Now create MLPlay instances for each AI setting
             mlplay_index = 0
