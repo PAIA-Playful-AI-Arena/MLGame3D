@@ -9,9 +9,9 @@ import numpy as np
 from typing import Dict, Tuple, Optional, List, Any
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple, ActionSpec
-from mlgame3d.observation_structure_side_channel import ObservationStructureSideChannel
-from mlgame3d.player_control_side_channel import PlayerControlSideChannel
-from mlgame3d.game_parameters_side_channel import GameParametersSideChannel
+from mlgame3d.side_channel.observation_structure_side_channel import ObservationStructureSideChannel
+from mlgame3d.side_channel.player_control_side_channel import PlayerControlSideChannel
+from mlgame3d.side_channel.game_parameters_side_channel import GameParametersSideChannel
 
 class GameEnvironment:
     """
