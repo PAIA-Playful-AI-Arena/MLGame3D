@@ -2,40 +2,10 @@
 
 A framework for playing Unity games with Python MLPlay classes using ML-Agents for communication with Unity.
 
-## Features
-
-- Simplified communication with Unity games
-- Simple MLPlay class structure with no inheritance required
-- Game runner for running games and collecting statistics
-- Easy to extend and customize
-- Command-line interface support
-- Support for multiple MLPlay instances (up to 4) playing simultaneously
-- Dynamic loading of external MLPlay files
-
 ## Installation
 
-First, make sure you have the ml-agents package installed:
-
 ```bash
-pip install mlagents
-```
-
-Then, you can use this framework directly:
-
-```bash
-# Clone the repository
-git clone https://github.com/PAIA-Playful-AI-Arena/MLGame3D.git
-cd MLGame3D
-
-# Install in development mode (using PEP 517)
-pip install -e .
-```
-
-If you encounter any deprecation warnings about legacy editable installs, you can use:
-
-```bash
-# Install in development mode with PEP 517 explicitly enabled
-pip install --use-pep517 -e .
+pip install mlgame3d
 ```
 
 ## Usage
