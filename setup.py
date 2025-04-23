@@ -32,7 +32,7 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="mlgame3d",
-    version="0.1.0",
+    version="0.1.1",
     author="PAIA",
     author_email="service@paia-tech.com",
     description="A framework for playing Unity games with Python agents using ML-Agents Environment.",
