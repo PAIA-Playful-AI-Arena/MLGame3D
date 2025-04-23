@@ -1,2 +1,1 @@
-mlagents>=0.30.0
-numpy>=1.21.0
+mlgame3d-envs
