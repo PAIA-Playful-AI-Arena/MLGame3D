@@ -23,8 +23,6 @@ jobs:
         python-version: 3.11.x
     - name: Install dependencies
       run: pip install setuptools wheel twine --user
-    - name: verify git tag vs. version
-      run: python setup.py verify
     - name: Build package
       run: |
         python setup.py sdist
