@@ -1,28 +1,4 @@
-import os
-import sys
 from setuptools import setup, find_packages
-from setuptools.command.install import install
-import mlgame3d
-
-VERSION = mlgame3d.__version__
-
-class VerifyVersionCommand(install):
-    """
-    Custom command to verify that the git tag is the expected one for the release.
-    Originally based on https://circleci.com/blog/continuously-deploying-python-packages-to-pypi-with-circleci/
-    This differs slightly because our tags and versions are different.
-    """
-
-    description = "verify that the git tag matches our version"
-
-    def run(self):
-        tag = os.getenv("GITHUB_REF", "NO GITHUB TAG!").replace("refs/tags/", "")
-
-        if tag != VERSION:
-            info = "Git tag: {} does not match the version of this app: {}".format(
-                tag, VERSION
-            )
-            sys.exit(info)
 
 with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
