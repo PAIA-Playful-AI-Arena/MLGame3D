@@ -9,6 +9,7 @@ import numpy as np
 from typing import Dict, Tuple, Optional, List, Any
 from mlagents_envs.environment import UnityEnvironment
 from mlagents_envs.base_env import ActionTuple, ActionSpec
+from mlagents_envs.side_channel.engine_configuration_channel import EngineConfigurationChannel
 from mlgame3d.side_channel.observation_structure_side_channel import ObservationStructureSideChannel
 from mlgame3d.side_channel.player_control_side_channel import PlayerControlSideChannel
 from mlgame3d.side_channel.game_parameters_side_channel import GameParametersSideChannel
@@ -24,10 +25,13 @@ class GameEnvironment:
         worker_id: int = 0,
         base_port: Optional[int] = None,
         seed: int = 0,
+        time_scale: float = 1.0,
+        fps: int = 60,
         no_graphics: bool = False,
         timeout_wait: int = 60,
         controlled_players: List[int] = [],
         control_modes: List[str] = [],
+        decision_period: int = 5,
         game_parameters: Optional[List[Tuple[str, Any]]] = None
     ):
         """
@@ -51,6 +55,13 @@ class GameEnvironment:
         
         # Initialize the game parameters side channel
         self.game_parameters_channel = GameParametersSideChannel()
+
+        # Initialize the engine configuration channel
+        self.engine_configuration_channel = EngineConfigurationChannel()
+        self.engine_configuration_channel.set_configuration_parameters(
+            time_scale=time_scale,
+            target_frame_rate=fps
+        )
         
         # Initialize the Unity environment with the side channel
         self.env = UnityEnvironment(
@@ -63,12 +74,16 @@ class GameEnvironment:
             side_channels=[
                 self.observation_structure_side_channel,
                 self.player_control_channel,
-                self.game_parameters_channel
+                self.game_parameters_channel,
+                self.engine_configuration_channel
             ]
         )
 
         # Set all players to be controlled with their respective modes
         self.player_control_channel.set_controlled_players(controlled_players, control_modes)
+        
+        # Set the decision period
+        self.player_control_channel.set_decision_period(decision_period)
 
         # Process game parameters if provided
         if game_parameters is not None:
@@ -167,16 +182,16 @@ class GameEnvironment:
         observations = {}
         rewards = {}
         info = {}
+        done = False
         
         for behavior_name in self.behavior_names:
             # Get the new decision steps and terminal steps
             self.decision_steps, self.terminal_steps = self.env.get_steps(behavior_name)
-            
+
             # Check if the episode is done
-            done = len(self.terminal_steps) > 0
-            
-            if done:
+            if len(self.terminal_steps) > 0:
                 # If the episode is done, get observations from terminal steps
+                done = True
                 agent_id = self.terminal_steps.agent_id[0]
                 observations[behavior_name] = self._get_obs_dict_for_agent(self.terminal_steps, agent_id)
                 rewards[behavior_name] = self.terminal_steps.reward[0]

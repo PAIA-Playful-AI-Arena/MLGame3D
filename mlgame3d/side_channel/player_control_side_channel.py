@@ -63,3 +63,16 @@ class PlayerControlSideChannel(SideChannel):
         outgoing_msg.write_string(f"CONTROL_PLAYERS:{','.join(player_info)}")
         self.queue_message_to_send(outgoing_msg)
         self.has_sent_control_message = True
+        
+    def set_decision_period(self, decision_period: int) -> None:
+        """
+        Set the decision period for all controlled players.
+        
+        Args:
+            decision_period: The number of FixedUpdate steps between decisions.
+                            Should be a multiple of 20 ms.
+        """
+        # Create an outgoing message
+        outgoing_msg = OutgoingMessage()
+        outgoing_msg.write_string(f"SET_DECISION_PERIOD:{decision_period}")
+        self.queue_message_to_send(outgoing_msg)

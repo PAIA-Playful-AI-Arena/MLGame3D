@@ -83,7 +83,22 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         "--fps", "-f",
         type=int, 
         default=30, 
-        help="Frames per second for rendering"
+        help="Target number of frames per second for rendering"
+    )
+    
+    parser.add_argument(
+        "--time-scale", "-ts",
+        type=float,
+        default=1.0,
+        help="Time scale factor for the simulation. Higher values make the simulation run faster. "
+             "Note: Values less than 1.0 will be clamped to 1.0 by Unity and have no effect"
+    )
+    
+    parser.add_argument(
+        "--decision-period", "-dp",
+        type=int,
+        default=5,
+        help="Number of FixedUpdate steps between AI decisions. Should be a multiple of 20ms. Range: 1-20"
     )
     
     # Add a new argument for auto-numbered AI instances
@@ -225,10 +240,13 @@ def main(args: Optional[List[str]] = None) -> int:
             worker_id=parsed_args.worker_id,
             base_port=parsed_args.base_port,
             seed=parsed_args.seed,
+            time_scale=parsed_args.time_scale,
+            fps=parsed_args.fps,
             no_graphics=parsed_args.no_graphics,
             timeout_wait=parsed_args.timeout,
             controlled_players=controlled_players,
             control_modes=control_modes,
+            decision_period=parsed_args.decision_period,
             game_parameters=parsed_args.game_param,
         )
         
@@ -270,8 +288,8 @@ def main(args: Optional[List[str]] = None) -> int:
                         print(f"Warning: Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
             
             # Create a game runner
-            # Calculate MLPlay timeout based on fps
-            mlplay_timeout = 1 / parsed_args.fps if parsed_args.fps > 0 else 0.1
+            # Calculate MLPlay timeout based on 20ms * decision period, adjusted by time scale
+            mlplay_timeout = 0.02 * parsed_args.decision_period / parsed_args.time_scale
             
             # Process game parameters if provided
             game_parameters = {}
