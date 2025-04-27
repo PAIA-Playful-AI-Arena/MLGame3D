@@ -18,7 +18,8 @@ classifiers = [
 ]
 requires-python = ">=3.11"
 dependencies = [
-    "mlgame3d-envs"
+    "mlgame3d-envs",
+    "pandas"
 ]
 
 [project.urls]

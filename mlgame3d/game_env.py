@@ -13,6 +13,7 @@ from mlagents_envs.side_channel.engine_configuration_channel import EngineConfig
 from mlgame3d.side_channel.observation_structure_side_channel import ObservationStructureSideChannel
 from mlgame3d.side_channel.player_control_side_channel import PlayerControlSideChannel
 from mlgame3d.side_channel.game_parameters_side_channel import GameParametersSideChannel
+from mlgame3d.side_channel.ranking_side_channel import RankingSideChannel
 
 class GameEnvironment:
     """
@@ -55,6 +56,9 @@ class GameEnvironment:
         
         # Initialize the game parameters side channel
         self.game_parameters_channel = GameParametersSideChannel()
+        
+        # Initialize the ranking side channel
+        self.ranking_channel = RankingSideChannel()
 
         # Initialize the engine configuration channel
         self.engine_configuration_channel = EngineConfigurationChannel()
@@ -75,6 +79,7 @@ class GameEnvironment:
                 self.observation_structure_side_channel,
                 self.player_control_channel,
                 self.game_parameters_channel,
+                self.ranking_channel,
                 self.engine_configuration_channel
             ]
         )
@@ -366,3 +371,36 @@ class GameEnvironment:
             parameters: Dictionary of parameter key-value pairs
         """
         self.game_parameters_channel.set_parameters(parameters)
+        
+    def get_ranking_data(self) -> Dict[str, Any]:
+        """
+        Get the latest ranking data.
+        
+        Returns:
+            The latest ranking data or None if no data has been received.
+        """
+        return self.ranking_channel.get_latest_ranking_data()
+        
+    def get_player_rankings(self, player_id: int = None) -> List[Dict[str, Any]]:
+        """
+        Get the rankings for a specific player or all players.
+        
+        Args:
+            player_id: The ID of the player to get rankings for, or None for all players.
+            
+        Returns:
+            A list of player rankings.
+        """
+        return self.ranking_channel.get_player_rankings(player_id)
+        
+    def get_checkpoint_rankings(self, checkpoint_index: int) -> List[Dict[str, Any]]:
+        """
+        Get the rankings for a specific checkpoint.
+        
+        Args:
+            checkpoint_index: The index of the checkpoint to get rankings for.
+            
+        Returns:
+            A list of checkpoint rankings sorted by time (ascending).
+        """
+        return self.ranking_channel.get_checkpoint_rankings(checkpoint_index)
