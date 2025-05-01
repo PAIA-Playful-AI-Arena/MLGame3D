@@ -94,23 +94,50 @@ class GameEnvironment:
         if game_parameters is not None:
             game_params = {}
             for key, value in game_parameters:
-                # Try to convert value to appropriate type
-                try:
-                    # Try as int
-                    game_params[key] = int(value)
-                except ValueError:
+                # Check if value might be a list (contains commas)
+                if isinstance(value, str) and ',' in value:
+                    # Split by comma and process each item
+                    items = value.split(',')
+                    processed_items = []
+                    
+                    for item in items:
+                        item = item.strip()  # Remove whitespace
+                        try:
+                            # Try as int
+                            processed_items.append(int(item))
+                        except ValueError:
+                            try:
+                                # Try as float
+                                processed_items.append(float(item))
+                            except ValueError:
+                                # Try as boolean
+                                if item.lower() in ('true', 'yes', '1'):
+                                    processed_items.append(True)
+                                elif item.lower() in ('false', 'no', '0'):
+                                    processed_items.append(False)
+                                else:
+                                    # Keep as string
+                                    processed_items.append(item)
+                    
+                    game_params[key] = processed_items
+                else:
+                    # Try to convert value to appropriate type
                     try:
-                        # Try as float
-                        game_params[key] = float(value)
+                        # Try as int
+                        game_params[key] = int(value)
                     except ValueError:
-                        # Try as boolean
-                        if value.lower() in ('true', 'yes', '1'):
-                            game_params[key] = True
-                        elif value.lower() in ('false', 'no', '0'):
-                            game_params[key] = False
-                        else:
-                            # Keep as string
-                            game_params[key] = value
+                        try:
+                            # Try as float
+                            game_params[key] = float(value)
+                        except ValueError:
+                            # Try as boolean
+                            if value.lower() in ('true', 'yes', '1'):
+                                game_params[key] = True
+                            elif value.lower() in ('false', 'no', '0'):
+                                game_params[key] = False
+                            else:
+                                # Keep as string
+                                game_params[key] = value
                         
             if game_params:
                 self.set_game_parameters(game_params)
