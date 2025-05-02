@@ -82,7 +82,7 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     parser.add_argument(
         "--fps", "-f",
         type=int, 
-        default=30, 
+        default=60, 
         help="Target number of frames per second for rendering"
     )
     

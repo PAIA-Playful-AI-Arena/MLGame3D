@@ -28,7 +28,9 @@ Options include:
 - `--seed`, `-s`: Set the random seed (default: 0)
 - `--timeout`, `-t`: Set the timeout for waiting for environment connection (default: 60 seconds)
 - `--episodes`, `-e`: Set the number of episodes to run (default: 5)
-- `--fps`, `-f`: Set the rendering frame rate (default: 30)
+- `--fps`, `-f`: Target number of frames per second for rendering (default: 60)
+- `--time-scale`, `-ts`: Time scale factor for the simulation. Higher values make the simulation run faster. Note: Values less than 1.0 will be clamped to 1.0 by Unity and have no effect (default: 1.0)
+- `--decision-period`, `-dp`: Number of FixedUpdate steps between AI decisions. Should be a multiple of 20ms. Range: 1-20 (default: 5)
 - `--ai`, `-i`: Control mode for an instance (auto-numbered). Can be specified multiple times. Each occurrence is equivalent to `--ai1`, `--ai2`, etc. in order.
 - `--ai1`, `-i1`: Control mode for instance 1. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
 - `--ai2`, `-i2`: Control mode for instance 2. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
@@ -66,6 +68,9 @@ python -m mlgame3d -i1 mlplay1.py -i2 manual -i3 mlplay2.py -i4 hidden path/to/y
 
 # Pass game parameters (checkpoint_count and checkpoint_mode)
 python -m mlgame3d -i examples/simple_mlplay.py -gp checkpoint_count 10 -gp checkpoint_mode random path/to/your/game.exe
+
+# Set simulation parameters (fps, time-scale, and decision-period)
+python -m mlgame3d -f 60 -ts 2.0 -dp 10 path/to/your/game.exe
 ```
 
 ### Code Interface
@@ -82,6 +87,9 @@ env = GameEnvironment(
     file_name="YourUnityGame.exe",  # Or None to connect to a running Unity editor
     worker_id=0,
     no_graphics=False,
+    fps=60,  # Target frames per second for rendering
+    time_scale=1.0,  # Time scale factor for simulation speed
+    decision_period=5,  # Number of FixedUpdate steps between AI decisions
     controlled_players=[0, 1],  # Control P1 and P2
     control_modes=["mlplay", "mlplay"],  # Both controlled by MLPlay
     game_parameters=[("checkpoint_count", 10), ("checkpoint_mode", "random")]  # Game parameters
