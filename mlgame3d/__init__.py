@@ -4,4 +4,4 @@ MLGame 3D Framework
 A framework for playing Unity games with Python agents using ML-Agents.
 """
 
-__version__ = "0.1.1"
+__version__ = "0.2.0"
