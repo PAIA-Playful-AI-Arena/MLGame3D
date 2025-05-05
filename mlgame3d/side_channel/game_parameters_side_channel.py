@@ -96,3 +96,12 @@ class GameParametersSideChannel(SideChannel):
             item_ids: List of item IDs to make available. If empty, all items will be available.
         """
         self.set_parameter("available_items", item_ids)
+        
+    def set_max_time(self, seconds: float) -> None:
+        """
+        Set the maximum time for each game in seconds.
+        
+        Args:
+            seconds: The maximum time in seconds. Default is 180 seconds (3 minutes).
+        """
+        self.set_parameter("max_time", seconds)
