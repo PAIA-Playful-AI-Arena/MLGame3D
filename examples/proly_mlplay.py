@@ -107,7 +107,7 @@ class MLPlay:
         
         # Add avoidance vector with high priority (safety first)
         if np.linalg.norm(avoidance_vector) > 0:
-            combined_vector += 1.5 * avoidance_vector
+            combined_vector += avoidance_vector
         
         # Add pickup vector if there's a valuable item nearby
         if pickup_priority > 0:
@@ -231,54 +231,37 @@ class MLPlay:
             
         return avoidance_vector
     
-    def _get_item_name(self, item_type: int, item_id: int) -> str:
+    def _get_item_name(self, item_id: int) -> str:
         """
-        Get a human-readable name for an item based on its type and ID.
+        Get a human-readable name for an item based on its ID.
         
-        Item type to item name mapping:
-        - Type 1 (Usable): 
-            ID 1: HealCake
-            ID 2: SpeedCoffee
-            ID 3: Shield
-        - Type 2 (Throwable): 
-            ID 1: Bomb
-            ID 2: Rock
-            ID 3: SpiderWeb
-            ID 4: Shuriken
-        - Type 3 (Equipment): 
-            ID 1: Stick
+        Item id to item name mapping:
+        - ID 1: HealCake
+        - ID 2: SpeedCoffee
+        - ID 3: Bomb
+        - ID 4: Shuriken
+        - ID 5: Shield
         
         Args:
-            item_type: The type of the item (1: Usable, 2: Throwable, 3: Equipment)
-            item_id: The ID of the item within its type
+            item_id: The ID of the item
             
         Returns:
             A string name for the item
         """
-        item_type_names = ["Unknown", "Usable", "Throwable", "Equipment"]
-        type_name = item_type_names[item_type] if 0 <= item_type < len(item_type_names) else "Unknown"
+        item_name = "Unknown"
         
-        if item_type == 1:  # Usable
-            if item_id == 1:
-                return "HealCake"
-            elif item_id == 2:
-                return "SpeedCoffee"
-            elif item_id == 3:
-                return "Shield"
-        elif item_type == 2:  # Throwable
-            if item_id == 1:
-                return "Bomb"
-            elif item_id == 2:
-                return "Rock"
-            elif item_id == 3:
-                return "SpiderWeb"
-            elif item_id == 4:
-                return "Shuriken"
-        elif item_type == 3:  # Equipment
-            if item_id == 1:
-                return "Stick"
+        if item_id == 1:
+            return "HealCake"
+        elif item_id == 2:
+            return "SpeedCoffee"
+        elif item_id == 3:
+            return "Bomb"
+        elif item_id == 4:
+            return "Shuriken"
+        elif item_id == 5:
+            return "Shield"
                 
-        return f"{type_name}({item_id})"
+        return f"{item_name}({item_id})"
     
     def _process_items(self) -> tuple[int, int]:
         """
@@ -297,12 +280,12 @@ class MLPlay:
         
         # Check if we have items in inventory
         if self.inventory_item_count > 0:
-            # Identify HealCake (Usable item with ID 1) when health is low
+            # Identify HealCake (ID 1) or Shield (ID 5) when health is low
             if health_percentage < 0.7 and self.item_use_cooldown <= 0:
                 # Search for HealCake in inventory
                 for i, item in enumerate(self.inventory_items):
-                    # Check if item is Usable (type 1) and is Shield (ID 3)
-                    if item["item_type"] == 1 and (item["item_id"] == 1 or item["item_id"] == 3):
+                    # Check if item is HealCake (ID 1) or is Shield (ID 5)
+                    if item["item_id"] == 1 or item["item_id"] == 5:
                         # If we're not on this item, select it
                         if self.selected_item_index != i and self.item_selection_cooldown <= 0:
                             select_item_action = 1
@@ -313,7 +296,7 @@ class MLPlay:
                             self.item_use_cooldown = 10  # Cooldown to avoid spamming
                         return select_item_action, use_item_action
 
-            # Use Throwable items like Bomb (ID 1) or Shuriken (ID 4) against nearby players
+            # Use Throwable items like Bomb (ID 3) or Shuriken (ID 4) against nearby players
             if self.other_players_info and self.item_use_cooldown <= 0:
                 # Find the closest player
                 closest_player = min(self.other_players_info,
@@ -345,8 +328,8 @@ class MLPlay:
                     if should_throw:
                         # Search for throwable items
                         for i, item in enumerate(self.inventory_items):
-                            # Check if item is Throwable (type 2)
-                            if item["item_type"] == 2:
+                            # Check if item is Bomb (ID 3) or Shuriken (ID 4)
+                            if item["item_id"] == 3 or item["item_id"] == 4:
                                 # If we're not on this item, select it
                                 if self.selected_item_index != i and self.item_selection_cooldown <= 0:
                                     select_item_action = 1
@@ -357,7 +340,7 @@ class MLPlay:
                                     self.item_use_cooldown = 20
                                 return select_item_action, use_item_action
                         
-            # Use SpeedCoffee (Usable item with ID 2) when approaching checkpoints
+            # Use SpeedCoffee (ID 2) when approaching checkpoints
             if health_percentage > 0.7 and self.item_use_cooldown <= 0:
                 distance_to_target = np.linalg.norm(self.target_position[:2] - self.current_position[:2])
                 
@@ -365,8 +348,8 @@ class MLPlay:
                 if 5.0 < distance_to_target < 30.0:
                     # Search for SpeedCoffee in inventory
                     for i, item in enumerate(self.inventory_items):
-                        # Check if item is Usable (type 1) and is SpeedCoffee (ID 2)
-                        if (item["item_type"] == 1 and item["item_id"] == 2):
+                        # Check if item is SpeedCoffee (ID 2)
+                        if item["item_id"] == 2:
                             # If we're not on this item, select it
                             if self.selected_item_index != i and self.item_selection_cooldown <= 0:
                                 select_item_action = 1
@@ -408,10 +391,10 @@ class MLPlay:
                 continue
                 
             # Skip if missing key information
-            if "item_type" not in nearby_item or "item_id" not in nearby_item:
+            if "item_id" not in nearby_item:
                 continue
                 
-            # Calculate base priority based on item type and ID
+            # Calculate base priority based on item ID
             item_priority = self._calculate_item_priority(nearby_item)
             
             # Calculate distance to item
@@ -440,30 +423,19 @@ class MLPlay:
                 
             # Set the final priority based on item value and distance
             pickup_priority = best_priority
-            
-            # Get item information for logging
-            item_type = int(best_item["item_type"])
-            item_id = int(best_item["item_id"])
-            item_name = self._get_item_name(item_type, item_id)
         
         return pickup_vector, pickup_priority
     
     def _calculate_item_priority(self, item: Dict[str, Any]) -> float:
         """
-        Calculate the priority of an item based on its type and ID.
+        Calculate the priority of an item based on its ID.
         
-        Item type to item name mapping:
-        - Type 1 (Usable): 
-            ID 1: HealCake
-            ID 2: SpeedCoffee
-            ID 3: Shield
-        - Type 2 (Throwable): 
-            ID 1: Bomb
-            ID 2: Rock
-            ID 3: SpiderWeb
-            ID 4: Shuriken
-        - Type 3 (Equipment): 
-            ID 1: Stick
+        Item id to item name mapping:
+        - ID 1: HealCake
+        - ID 2: SpeedCoffee
+        - ID 3: Bomb
+        - ID 4: Shuriken
+        - ID 5: Shield
         
         Args:
             item: The item dictionary from observations
@@ -471,7 +443,6 @@ class MLPlay:
         Returns:
             A priority value between 0.0 and 2.0
         """
-        item_type = int(item["item_type"])
         item_id = int(item["item_id"])
         health_percentage = self.current_health / max(1.0, self.max_health)
         
@@ -481,52 +452,35 @@ class MLPlay:
         # Check for item already in inventory
         have_similar_item = False
         for inv_item in self.inventory_items:
-            if inv_item["item_type"] == item_type and inv_item["item_id"] == item_id:
+            if inv_item["item_id"] == item_id:
                 have_similar_item = True
                 break
         
         # Get item name for better logging
-        item_name = self._get_item_name(item_type, item_id)
+        item_name = self._get_item_name(item_id)
         
-        # Adjustment based on item type
-        if item_type == 1:  # Usable items
-            if item_id == 1:  # HealCake
-                # Higher priority when health is low
-                if health_percentage < 0.3:
-                    priority = 2.0
-                elif health_percentage < 0.7:
-                    priority = 1.5
-                else:
-                    priority = 1.0
-                    
-            elif item_id == 2:  # SpeedCoffee
-                # Higher priority when health is good (we'd use it for speed)
-                if health_percentage > 0.7:
-                    priority = 1.5
-                else:
-                    priority = 0.8
-                    
-            elif item_id == 3:  # Shield
-                # Always useful for protection
-                priority = 1.2
-        
-        elif item_type == 2:  # Throwable items
-            if self.other_players_info:  # More valuable when other players are around
-                if item_id == 1:  # Bomb
-                    priority = 1.4
-                elif item_id == 2:  # Rock
-                    priority = 1.1
-                elif item_id == 3:  # SpiderWeb
-                    priority = 1.2
-                elif item_id == 4:  # Shuriken
-                    priority = 1.4
+        # Adjustment based on item id
+        if item_id == 1:  # HealCake
+            # Higher priority when health is low
+            if health_percentage < 0.3:
+                priority = 2.0
+            elif health_percentage < 0.7:
+                priority = 1.5
             else:
-                # Less valuable when playing alone
-                priority = 0.7
-                
-        elif item_type == 3:  # Equipment items
-            if item_id == 1:  # Stick
-                priority = 1.3
+                priority = 1.0
+        elif item_id == 2:  # SpeedCoffee
+            # Higher priority when health is good (we'd use it for speed)
+            if health_percentage > 0.7:
+                priority = 1.5
+            else:
+                priority = 0.8
+        elif item_id == 3:  # Rock
+            priority = 1.1
+        elif item_id == 4:  # Shuriken
+            priority = 1.4
+        elif item_id == 5:  # Shield
+            # Always useful for protection
+            priority = 1.2
         
         # Reduce priority if we already have this item
         if have_similar_item:
