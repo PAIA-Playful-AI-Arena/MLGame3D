@@ -8,6 +8,7 @@ import uuid
 import json
 from typing import Dict, Any, List, Optional
 import pandas as pd
+import os
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
 class RankingSideChannel(SideChannel):
@@ -18,9 +19,14 @@ class RankingSideChannel(SideChannel):
     and provides methods for accessing and analyzing that data.
     """
     
-    def __init__(self) -> None:
+    def __init__(self, result_output_file: Optional[str] = None) -> None:
         """
         Initialize the ranking side channel.
+        
+        Args:
+            result_output_file: Optional path to a CSV file where result data will be saved.
+                               If provided, each episode's result data will be appended to this file.
+                               If the file path doesn't end with '.csv', it will be automatically added.
         """
         # Use the same channel ID as in the Unity side
         channel_id = uuid.UUID("7a8e3f52-9c5d-4b6a-8f1e-d3b9c0a7e4d5")
@@ -28,6 +34,14 @@ class RankingSideChannel(SideChannel):
         self.ranking_data = None
         self.has_requested_data = False
         self.episode_rankings = []
+        
+        # Ensure file path ends with .csv if provided
+        if result_output_file is not None:
+            if not result_output_file.lower().endswith('.csv'):
+                result_output_file += '.csv'
+        
+        self.result_output_file = result_output_file
+        self.episode_count = 0
     
     def on_message_received(self, msg: IncomingMessage) -> None:
         """
@@ -47,6 +61,9 @@ class RankingSideChannel(SideChannel):
                 
                 # Store the ranking data for this episode
                 self.episode_rankings.append(self.ranking_data)
+                
+                # Increment episode count
+                self.episode_count += 1
                 
                 # Print the ranking table
                 self.print_ranking_table()
@@ -117,6 +134,7 @@ class RankingSideChannel(SideChannel):
         """
         Print a ranking table using pandas DataFrame.
         The table is sorted by player_num.
+        If result_output_file is set, also save the result data to the file.
         """
         if not self.has_ranking_data():
             print("No ranking data available.")
@@ -139,6 +157,10 @@ class RankingSideChannel(SideChannel):
         
         # Print the DataFrame
         print(df.to_string(index=False))
+        
+        # Save to file if output file is specified
+        if self.result_output_file:
+            self.save_result_to_file(df)
     
     def clear_episode_data(self) -> None:
         """
@@ -146,3 +168,49 @@ class RankingSideChannel(SideChannel):
         """
         self.ranking_data = None
         self.has_requested_data = False
+        
+    def save_result_to_file(self, df: pd.DataFrame) -> None:
+        """
+        Save the result data to a CSV file.
+        Each episode's data is appended to the file with the episode number included.
+        
+        Args:
+            df: The DataFrame containing the result data.
+        """
+        try:
+            # Create directory if it doesn't exist
+            os.makedirs(os.path.dirname(os.path.abspath(self.result_output_file)), exist_ok=True)
+            
+            # Add episode information to the DataFrame
+            df = df.copy()
+            df['episode'] = self.episode_count
+            
+            # Ensure episode column is the first column
+            cols = list(df.columns)
+            if 'episode' in cols:
+                cols.remove('episode')
+                cols = ['episode'] + cols
+                df = df[cols]
+            
+            # Check if file exists to determine if we need to write headers
+            file_exists = os.path.isfile(self.result_output_file)
+            
+            # Save to CSV file (append mode if file exists)
+            df.to_csv(self.result_output_file, mode='a', index=False, header=not file_exists)
+            print(f"Result data appended to {self.result_output_file}")
+        except Exception as e:
+            print(f"Error saving ranking data to file: {e}")
+    
+    def set_result_output_file(self, file_path: str) -> None:
+        """
+        Set or update the file path for saving result data.
+        
+        Args:
+            file_path: The path to the CSV file where result data will be saved.
+                      If the file path doesn't end with '.csv', it will be automatically added.
+        """
+        # Ensure file path ends with .csv
+        if not file_path.lower().endswith('.csv'):
+            file_path += '.csv'
+            
+        self.result_output_file = file_path

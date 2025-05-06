@@ -37,6 +37,7 @@ Options include:
 - `--ai3`, `-i3`: Control mode for instance 3. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
 - `--ai4`, `-i4`: Control mode for instance 4. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
 - `--game-param`, `-gp`: Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters.
+- `--result-output-file`, `-o`: Path to a CSV file where result data will be saved. Each episode's result will be appended to this file with the episode column always appearing first. If the file path doesn't end with '.csv', it will be automatically added.
 
 Examples:
 
@@ -71,6 +72,11 @@ python -m mlgame3d -i examples/simple_mlplay.py -gp checkpoint_count 10 -gp chec
 
 # Set simulation parameters (fps, time-scale, and decision-period)
 python -m mlgame3d -f 60 -ts 2.0 -dp 10 path/to/your/game.exe
+
+# Save result data to a CSV file
+python -m mlgame3d -i examples/simple_mlplay.py -o results.csv path/to/your/game.exe
+# Or specify a path without .csv extension (it will be added automatically)
+python -m mlgame3d -i examples/simple_mlplay.py -o results/game_results path/to/your/game.exe
 ```
 
 ### Code Interface
@@ -92,7 +98,8 @@ env = GameEnvironment(
     decision_period=5,  # Number of FixedUpdate steps between AI decisions
     controlled_players=[0, 1],  # Control P1 and P2
     control_modes=["mlplay", "mlplay"],  # Both controlled by MLPlay
-    game_parameters=[("checkpoint_count", 10), ("checkpoint_mode", "random")]  # Game parameters
+    game_parameters=[("checkpoint_count", 10), ("checkpoint_mode", "random")],  # Game parameters
+    result_output_file="results.csv"  # Save result data to this CSV file
 )
 
 # Get information about the action space for each behavior
@@ -233,6 +240,10 @@ mlplay = create_mlplay_from_file("simple_mlplay.py", action_space_info)
   - `manual`: Player is controlled manually via keyboard/gamepad
   - `hidden`: Player is hidden (not visible in the game)
   - Python file path: Player is controlled by an MLPlay instance loaded from the specified file
+- Result data:
+  - When using the `--result-output-file` option, result data will be saved to the specified CSV file
+  - Each episode's result data will be appended to the file with the episode column always appearing first
+  - If the file path doesn't end with '.csv', it will be automatically added
 
 ## Contributing
 

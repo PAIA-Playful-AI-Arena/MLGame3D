@@ -152,6 +152,13 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         help="Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters."
     )
     
+    parser.add_argument(
+        "--result-output-file", "-o",
+        type=str,
+        default=None,
+        help="Path to a CSV file where result data will be saved. Each episode's result will be appended to this file."
+    )
+    
     return parser.parse_args(args)
 
 def process_ai_settings(parsed_args):
@@ -248,6 +255,7 @@ def main(args: Optional[List[str]] = None) -> int:
             control_modes=control_modes,
             decision_period=parsed_args.decision_period,
             game_parameters=parsed_args.game_param,
+            result_output_file=parsed_args.result_output_file,
         )
         
         try:

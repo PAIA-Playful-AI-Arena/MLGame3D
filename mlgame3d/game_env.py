@@ -33,7 +33,8 @@ class GameEnvironment:
         controlled_players: List[int] = [],
         control_modes: List[str] = [],
         decision_period: int = 5,
-        game_parameters: Optional[List[Tuple[str, Any]]] = None
+        game_parameters: Optional[List[Tuple[str, Any]]] = None,
+        result_output_file: Optional[str] = None
     ):
         """
         Initialize the game environment.
@@ -58,7 +59,7 @@ class GameEnvironment:
         self.game_parameters_channel = GameParametersSideChannel()
         
         # Initialize the ranking side channel
-        self.ranking_channel = RankingSideChannel()
+        self.ranking_channel = RankingSideChannel(result_output_file)
 
         # Initialize the engine configuration channel
         self.engine_configuration_channel = EngineConfigurationChannel()
@@ -407,6 +408,15 @@ class GameEnvironment:
             The latest ranking data or None if no data has been received.
         """
         return self.ranking_channel.get_latest_ranking_data()
+        
+    def set_result_output_file(self, file_path: str) -> None:
+        """
+        Set or update the file path for saving result data.
+        
+        Args:
+            file_path: The path to the CSV file where result data will be saved.
+        """
+        self.ranking_channel.set_result_output_file(file_path)
         
     def get_player_rankings(self, player_id: int = None) -> List[Dict[str, Any]]:
         """
