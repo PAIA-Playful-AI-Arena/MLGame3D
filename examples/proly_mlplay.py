@@ -211,19 +211,27 @@ class MLPlay:
         """
         avoidance_vector = np.zeros(2)
         
+        # Height threshold for considering avoidance (in world units)
+        height_threshold = 2.0
+        
         for player_info in self.other_players_info:
             relative_pos = player_info["relative_position"]
-            distance = np.linalg.norm(relative_pos)
             
-            # Only avoid if the player is close
-            if distance < 5.0:
-                # The closer the player, the stronger the avoidance
-                avoidance_strength = 1.0 - (distance / 5.0)
+            # Only consider avoidance if the player is within a certain height range
+            if abs(relative_pos[1]) < height_threshold:  # Check y-coordinate (height)
+                # Project to 2D for horizontal distance calculation (x, z)
+                relative_pos_2d = np.array([relative_pos[0], relative_pos[2]])
+                horizontal_distance = np.linalg.norm(relative_pos_2d)
                 
-                # Direction away from the player
-                if distance > 0:
-                    avoidance_direction = -relative_pos / distance
-                    avoidance_vector += avoidance_direction * avoidance_strength
+                # Only avoid if the player is horizontally close
+                if horizontal_distance < 5.0:
+                    # The closer the player, the stronger the avoidance
+                    avoidance_strength = 1.0 - (horizontal_distance / 5.0)
+                    
+                    # Direction away from the player (in 2D)
+                    if horizontal_distance > 0:
+                        avoidance_direction = -relative_pos_2d / horizontal_distance
+                        avoidance_vector += avoidance_direction * avoidance_strength
         
         # Normalize
         if np.linalg.norm(avoidance_vector) > 0:
@@ -298,15 +306,29 @@ class MLPlay:
 
             # Use Throwable items like Bomb (ID 3) or Shuriken (ID 4) against nearby players
             if self.other_players_info and self.item_use_cooldown <= 0:
-                # Find the closest player
-                closest_player = min(self.other_players_info,
-                                   key=lambda p: np.linalg.norm(p["relative_position"]))
-                closest_distance = np.linalg.norm(closest_player["relative_position"])
+                # Height threshold for considering players (in world units)
+                height_threshold = 2.0
+                
+                # Filter players that are within height threshold
+                nearby_players = [p for p in self.other_players_info
+                                 if abs(p["relative_position"][1]) < height_threshold]
+                
+                if not nearby_players:
+                    return select_item_action, use_item_action
+                
+                # Find the closest player based on horizontal distance
+                closest_player = min(nearby_players,
+                                   key=lambda p: np.linalg.norm([p["relative_position"][0], p["relative_position"][2]]))
+                
+                # Calculate horizontal distance (x, z plane)
+                closest_distance = np.linalg.norm([closest_player["relative_position"][0],
+                                                 closest_player["relative_position"][2]])
                 
                 # If there's a player nearby
                 if closest_distance < 5.0:
-                    # Calculate direction to the closest player
-                    direction_to_player = closest_player["relative_position"]
+                    # Calculate direction to the closest player (in 2D)
+                    direction_to_player = np.array([closest_player["relative_position"][0],
+                                                  closest_player["relative_position"][2]])
                     if np.linalg.norm(direction_to_player) > 0:
                         direction_to_player = direction_to_player / np.linalg.norm(direction_to_player)
                     
