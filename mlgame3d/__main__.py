@@ -17,6 +17,10 @@ from mlgame3d.game_runner import GameRunner
 from mlgame3d.mlplay_loader import create_mlplay_from_file, validate_mlplay_file
 from mlagents_envs.exception import UnityCommunicatorStoppedException
 
+# Set environment variables to suppress gRPC warnings
+os.environ["GRPC_VERBOSITY"] = "ERROR"
+os.environ["GRPC_CPP_LOG_LEVEL"] = "ERROR"
+
 def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     """
     Parse command-line arguments.
