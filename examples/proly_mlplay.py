@@ -27,7 +27,7 @@ class MLPlay:
         self.target_position = np.zeros(3)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
-        self.agent_forward_direction = np.zeros(2)  # 角色面對的方向 (x, z)
+        self.agent_forward_direction = np.zeros(2)  # Character facing direction (x, z)
         self.current_health = 0
         self.max_health = 0
         self.current_time = 0
@@ -52,7 +52,7 @@ class MLPlay:
         self.target_position = np.zeros(3)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
-        self.agent_forward_direction = np.zeros(2)  # 角色面對的方向 (x, z)
+        self.agent_forward_direction = np.zeros(2)  # Character facing direction (x, z)
         self.current_health = 0
         self.max_health = 0
         self.current_time = 0
@@ -129,16 +129,16 @@ class MLPlay:
         if self.item_selection_cooldown > 0:
             self.item_selection_cooldown -= 1
         
-        # Unity ML-Agents 支持混合動作空間，我們需要返回一個 tuple
-        # 包含 (連續動作, 離散動作)
+        # Unity ML-Agents supports hybrid action space, we need to return a tuple
+        # containing (continuous actions, discrete actions)
         
-        # 連續動作: 移動方向向量 [move_x, move_z]
+        # Continuous actions: movement direction vector [move_x, move_z]
         continuous_actions = np.array([combined_vector[0], combined_vector[1]])
         
-        # 離散動作: 選擇物品和使用物品 [select_item, use_item]
+        # Discrete actions: select item and use item [select_item, use_item]
         discrete_actions = np.array([select_item_action, use_item_action], dtype=np.int32)
         
-        # 返回一個 tuple (連續動作, 離散動作)
+        # Return a tuple (continuous actions, discrete actions)
         return (continuous_actions, discrete_actions)
     
     def _parse_observations(self, observations: Dict[str, np.ndarray]) -> None:
