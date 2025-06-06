@@ -340,11 +340,11 @@ class GameEnvironment:
         
         if action_spec.is_continuous():
             # Continuous action space
-            continuous_actions = np.vstack([action.reshape(1, -1) for action in actions[behavior_name]])
+            continuous_actions = np.vstack([np.array(action).reshape(1, -1) for action in actions[behavior_name]])
             return ActionTuple(continuous=continuous_actions)
         elif action_spec.is_discrete():
             # Discrete action space
-            discrete_actions = np.vstack([action.reshape(1, -1).astype(np.int32) for action in actions[behavior_name]])
+            discrete_actions = np.vstack([np.array(action).reshape(1, -1).astype(np.int32) for action in actions[behavior_name]])
             return ActionTuple(discrete=discrete_actions)
         else:
             # Hybrid action space
@@ -354,8 +354,8 @@ class GameEnvironment:
             for action in actions[behavior_name]:
                 if isinstance(action, tuple) and len(action) == 2:
                     continuous, discrete = action
-                    continuous_actions.append(continuous.reshape(1, -1))
-                    discrete_actions.append(discrete.reshape(1, -1).astype(np.int32))
+                    continuous_actions.append(np.array(continuous).reshape(1, -1))
+                    discrete_actions.append(np.array(discrete).reshape(1, -1).astype(np.int32))
                 else:
                     raise ValueError(
                         "For hybrid action spaces, action must be a tuple of (continuous_actions, discrete_actions)"
