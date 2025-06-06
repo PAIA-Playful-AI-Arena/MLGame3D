@@ -198,7 +198,7 @@ class ObservationStructureSideChannel(SideChannel):
         elif item_type == "float" or item_type == "int":
             # float and int are single values
             if current_index < len(observation):
-                result = observation[current_index]
+                result = int(observation[current_index]) if item_type == "int" else observation[current_index]
                 current_index += 1
             else:
                 print(f"Warning: Not enough data for {item.get('key', '')} ({item_type})")
