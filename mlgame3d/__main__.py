@@ -176,7 +176,7 @@ def process_ai_settings(parsed_args):
         parsed_args: Parsed command-line arguments.
         
     Returns:
-        List of AI settings.
+        Tuple of (List of AI settings, List of AI names).
     """
     # Start with the default AI settings
     ai_settings = [
@@ -186,13 +186,29 @@ def process_ai_settings(parsed_args):
         parsed_args.ai4
     ]
     
+    # Initialize AI names list (None means use default name)
+    ai_names = [None, None, None, None]
+    
     # Apply auto-numbered AI arguments if provided
     if parsed_args.ai:
         for i, ai_arg in enumerate(parsed_args.ai):
             if i < 4:  # We only support up to 4 AI instances
-                ai_settings[i] = ai_arg
+                # Check if AI name is provided (format: "mlplay_file,AI_name" or "manual,AI_name")
+                if "," in ai_arg:
+                    parts = ai_arg.split(",", 1)  # Split only on the first comma
+                    ai_settings[i] = parts[0]
+                    ai_names[i] = parts[1] if parts[1] else None
+                else:
+                    ai_settings[i] = ai_arg
     
-    return ai_settings
+    # Process traditional ai1, ai2, etc. arguments for AI names
+    for i, setting in enumerate([parsed_args.ai1, parsed_args.ai2, parsed_args.ai3, parsed_args.ai4]):
+        if setting and "," in setting:
+            parts = setting.split(",", 1)  # Split only on the first comma
+            ai_settings[i] = parts[0]
+            ai_names[i] = parts[1] if parts[1] else None
+    
+    return ai_settings, ai_names
 
 def validate_mlplay_args(parsed_args):
     """
@@ -205,7 +221,7 @@ def validate_mlplay_args(parsed_args):
         ValueError: If the arguments are invalid.
     """
     # Process AI settings
-    ai_settings = process_ai_settings(parsed_args)
+    ai_settings, _ = process_ai_settings(parsed_args)
     
     # Check if the AI files exist and are valid
     for i, setting in enumerate(ai_settings):
@@ -229,7 +245,7 @@ def main(args: Optional[List[str]] = None) -> int:
     parsed_args = parse_args(args)
 
     # Process AI settings
-    ai_settings = process_ai_settings(parsed_args)
+    ai_settings, ai_names = process_ai_settings(parsed_args)
     
     try:
         # Validate MLPlay-related arguments
@@ -237,6 +253,7 @@ def main(args: Optional[List[str]] = None) -> int:
 
         controlled_players = []
         control_modes = []
+        player_names = []
         
         for i, setting in enumerate(ai_settings):
             if setting is not None and setting != "hidden":
@@ -244,6 +261,7 @@ def main(args: Optional[List[str]] = None) -> int:
                 # Set control mode: "mlplay" for Python files, "manual" for manual control
                 mode = "manual" if setting == "manual" else "mlplay"
                 control_modes.append(mode)
+                player_names.append(ai_names[i])
         
         # Create the environment
         env = GameEnvironment(
@@ -257,6 +275,7 @@ def main(args: Optional[List[str]] = None) -> int:
             timeout_wait=parsed_args.timeout,
             controlled_players=controlled_players,
             control_modes=control_modes,
+            player_names=player_names,
             decision_period=parsed_args.decision_period,
             game_parameters=parsed_args.game_param,
             result_output_file=parsed_args.result_output_file,

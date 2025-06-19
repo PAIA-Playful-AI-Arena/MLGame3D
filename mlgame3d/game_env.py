@@ -32,6 +32,7 @@ class GameEnvironment:
         timeout_wait: int = 60,
         controlled_players: List[int] = [],
         control_modes: List[str] = [],
+        player_names: List[Optional[str]] = None,
         decision_period: int = 5,
         game_parameters: Optional[List[Tuple[str, Any]]] = None,
         result_output_file: Optional[str] = None
@@ -48,6 +49,7 @@ class GameEnvironment:
             timeout_wait: Time (in seconds) to wait for connection from environment.
             controlled_players: List of player IDs to control.
             control_modes: List of control modes ("manual" or "mlplay") for each player.
+            player_names: List of player names to display in Unity. If None or a specific element is None, default names will be used.
         """
         # Create the observation structure side channel
         self.observation_structure_side_channel = ObservationStructureSideChannel()
@@ -85,8 +87,8 @@ class GameEnvironment:
             ]
         )
 
-        # Set all players to be controlled with their respective modes
-        self.player_control_channel.set_controlled_players(controlled_players, control_modes)
+        # Set all players to be controlled with their respective modes and names
+        self.player_control_channel.set_controlled_players(controlled_players, control_modes, player_names)
         
         # Set the decision period
         self.player_control_channel.set_decision_period(decision_period)

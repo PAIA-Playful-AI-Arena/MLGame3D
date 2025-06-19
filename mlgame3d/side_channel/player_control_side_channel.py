@@ -35,7 +35,7 @@ class PlayerControlSideChannel(SideChannel):
         # Currently, we don't expect any messages from Unity
         pass
     
-    def set_controlled_players(self, player_ids: List[int], control_modes: List[str] = None) -> None:
+    def set_controlled_players(self, player_ids: List[int], control_modes: List[str] = None, player_names: List[str] = None) -> None:
         """
         Set which players should be controlled by MLGame3D and in which mode.
         
@@ -43,6 +43,8 @@ class PlayerControlSideChannel(SideChannel):
             player_ids: A list of player IDs to control (0-3 for P1-P4).
             control_modes: A list of control modes ("manual" or "mlplay") for each player.
                            If None, all players are assumed to be in "mlplay" mode.
+            player_names: A list of player names to display in Unity. If None or a specific element is None,
+                          default names will be used.
         """
         # Map player_ids (0-3) to PlayerID enum in Unity (P1-P4)
         player_enums = [f"P{player_id + 1}" for player_id in player_ids]
@@ -55,8 +57,22 @@ class PlayerControlSideChannel(SideChannel):
         if len(control_modes) != len(player_ids):
             raise ValueError("control_modes must have the same length as player_ids")
         
-        # Create player info strings with format "P1:manual", "P2:mlplay", etc.
-        player_info = [f"{player_enums[i]}:{control_modes[i]}" for i in range(len(player_ids))]
+        # If player_names is not provided, use None for all players
+        if player_names is None:
+            player_names = [None] * len(player_ids)
+        
+        # Ensure player_names has the same length as player_ids
+        if len(player_names) != len(player_ids):
+            raise ValueError("player_names must have the same length as player_ids")
+        
+        # Create player info strings with format "P1:manual:name", "P2:mlplay:name", etc.
+        # If a player name is None, omit the name part
+        player_info = []
+        for i in range(len(player_ids)):
+            if player_names[i] is None:
+                player_info.append(f"{player_enums[i]}:{control_modes[i]}")
+            else:
+                player_info.append(f"{player_enums[i]}:{control_modes[i]}:{player_names[i]}")
         
         # Create an outgoing message
         outgoing_msg = OutgoingMessage()
