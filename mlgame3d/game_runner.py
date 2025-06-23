@@ -132,12 +132,36 @@ class GameRunner:
                     print(f"Warning: Behavior name {behavior_name} not found in observations. Skipping.")
                     continue
                 
-                future = self.executor.submit(
-                    mlplay.update,
-                    observations[behavior_name],
-                    done,
-                    info
-                )
+                # Get keyboard state if available
+                keyboard = set()
+                if hasattr(self.env, 'keyboard_state_channel'):
+                    keyboard = self.env.keyboard_state_channel.get_pressed_keys()
+                
+                # Check if MLPlay's update method accepts keyboard parameter
+                if hasattr(mlplay, 'update'):
+                    update_method = getattr(mlplay, 'update')
+                    import inspect
+                    params = inspect.signature(update_method).parameters
+                    
+                    if 'keyboard' in params:
+                        # MLPlay's update method accepts keyboard parameter
+                        future = self.executor.submit(
+                            mlplay.update,
+                            observations[behavior_name],
+                            done,
+                            info,
+                            keyboard
+                        )
+                    else:
+                        # MLPlay's update method doesn't accept keyboard parameter
+                        future = self.executor.submit(
+                            mlplay.update,
+                            observations[behavior_name],
+                            done,
+                            info
+                        )
+                else:
+                    continue
                 futures.append((future, i))
             else:
                 print(f"Warning: MLPlay instance {i+1} does not have an update method.")

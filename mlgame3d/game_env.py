@@ -14,6 +14,7 @@ from mlgame3d.side_channel.observation_structure_side_channel import Observation
 from mlgame3d.side_channel.player_control_side_channel import PlayerControlSideChannel
 from mlgame3d.side_channel.game_parameters_side_channel import GameParametersSideChannel
 from mlgame3d.side_channel.ranking_side_channel import RankingSideChannel
+from mlgame3d.side_channel.keyboard_state_side_channel import KeyboardStateSideChannel
 
 class GameEnvironment:
     """
@@ -62,6 +63,9 @@ class GameEnvironment:
         
         # Initialize the ranking side channel
         self.ranking_channel = RankingSideChannel(result_output_file)
+        
+        # Initialize the keyboard state side channel
+        self.keyboard_state_channel = KeyboardStateSideChannel()
 
         # Initialize the engine configuration channel
         self.engine_configuration_channel = EngineConfigurationChannel()
@@ -83,6 +87,7 @@ class GameEnvironment:
                 self.player_control_channel,
                 self.game_parameters_channel,
                 self.ranking_channel,
+                self.keyboard_state_channel,
                 self.engine_configuration_channel
             ]
         )
