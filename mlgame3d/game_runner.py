@@ -4,6 +4,7 @@ Game Runner Module
 This module provides a class for running games with MLPlay instances in Unity environments asynchronously.
 """
 
+import traceback
 import numpy as np
 from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
@@ -97,7 +98,11 @@ class GameRunner:
 
             for mlplay in self.mlplays:
                 if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
-                    mlplay.reset()
+                    try:
+                        mlplay.reset()
+                    except Exception as e:
+                        print(f"Error resetting MLPlay instance {mlplay.name}: {e}")
+                        traceback.print_exc()
         
         return
     
@@ -196,6 +201,7 @@ class GameRunner:
                     )]
             except Exception as e:
                 print(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
+                traceback.print_exc()
                 # Use a default action if the MLPlay instance fails
                 action_spec = self.env.get_action_space_info(behavior_name)
                 if action_spec.is_continuous():

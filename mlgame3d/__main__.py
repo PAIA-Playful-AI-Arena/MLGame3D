@@ -310,6 +310,7 @@ def main(args: Optional[List[str]] = None) -> int:
                             mlplay_index += 1
                         except Exception as e:
                             print(f"Error creating MLPlay instance from file {setting}: {e}")
+                            traceback.print_exc()
                             print(f"Using RandomMLPlay for player {player_idx+1} instead.")
                             mlplay = RandomMLPlay(action_space_info, name=f"RandomMLPlay{player_idx+1}")
                             mlplays.append(mlplay)
@@ -361,7 +362,7 @@ def main(args: Optional[List[str]] = None) -> int:
         
         except UnityCommunicatorStoppedException:
             print("Unity environment stopped.")
-            return 1
+            return 0
             
         finally:
             # Make sure to close the environment
