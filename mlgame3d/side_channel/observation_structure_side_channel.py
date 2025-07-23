@@ -7,7 +7,7 @@ This module provides a side channel for receiving the observation structure from
 import uuid
 import json
 import numpy as np
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
 class ObservationStructureSideChannel(SideChannel):
