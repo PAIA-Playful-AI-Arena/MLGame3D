@@ -270,6 +270,7 @@ class GameEnvironment:
         if self.observation_structure_side_channel.has_observation_structure() and len(agent_step.obs) > 0:
             # Get the first observation (which should be the vector observation)
             vector_obs = agent_step.obs[0]
+            obs_dict['flattened'] = vector_obs
             
             # Parse the observation using the observation structure
             parsed_obs = self.observation_structure_side_channel.parse_observation(vector_obs)
@@ -387,6 +388,18 @@ class GameEnvironment:
             The action specification for the default behavior
         """
         return self.behavior_specs[behavior_name].action_spec
+    
+    def get_observation_structure(self, behavior_name: str) -> Dict[str, Any]:
+        """
+        Get the observation structure for a specific behavior.
+        
+        Args:
+            behavior_name: The name of the behavior to get the observation structure for
+            
+        Returns:
+            A dictionary representing the observation structure
+        """
+        return self.observation_structure_side_channel.observation_structure if self.observation_structure_side_channel.has_observation_structure() else {}
         
     def set_game_parameter(self, key: str, value: Any) -> None:
         """

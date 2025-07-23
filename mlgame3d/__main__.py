@@ -303,8 +303,9 @@ def main(args: Optional[List[str]] = None) -> int:
                     if player_idx in player_to_behavior_map:
                         behavior_name = player_to_behavior_map[player_idx]
                         action_space_info = env.get_action_space_info(behavior_name)
+                        observation_structure = env.get_observation_structure(behavior_name)
                         try:
-                            mlplay = create_mlplay_from_file(setting, action_space_info, name=f"MLPlay{player_idx+1}")
+                            mlplay = create_mlplay_from_file(setting, observation_structure, action_space_info, name=f"MLPlay{player_idx+1}")
                             mlplays.append(mlplay)
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1

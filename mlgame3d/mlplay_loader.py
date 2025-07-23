@@ -45,7 +45,7 @@ def load_mlplay_class(file_path: str) -> Optional[Type[Any]]:
     
     raise ValueError(f"No MLPlay class found in {file_path}")
 
-def create_mlplay_from_file(file_path: str, action_space_info, name: Optional[str] = None) -> Any:
+def create_mlplay_from_file(file_path: str, observation_structure: dict, action_space_info, name: Optional[str] = None) -> Any:
     """
     Create an MLPlay instance from an external Python file.
     
@@ -61,7 +61,7 @@ def create_mlplay_from_file(file_path: str, action_space_info, name: Optional[st
     
     # Create an MLPlay instance
     try:
-        ml_play_instance = cls(action_space_info)
+        ml_play_instance = cls(observation_structure, action_space_info)
     except TypeError:
         # Try without action_space_info
         try:
