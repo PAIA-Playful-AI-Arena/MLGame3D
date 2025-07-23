@@ -369,7 +369,7 @@ def main(args: Optional[List[str]] = None) -> int:
             env.close()
     
     except Exception as e:
-        print(traceback.print_exc())
+        traceback.print_exc()
         return 1
 
 if __name__ == "__main__":
