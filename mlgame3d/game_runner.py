@@ -182,6 +182,20 @@ class GameRunner:
             try:
                 # Wait for the MLPlay instance to update with timeout
                 action = future.result(timeout=self.mlplay_timeout)
+                # Use a default action if the MLPlay instance returns None
+                if action is None:
+                    print(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
+                    action_spec = self.env.get_action_space_info(behavior_name)
+                    if action_spec.is_continuous():
+                        action = np.zeros(action_spec.continuous_size)
+                    elif action_spec.is_discrete():
+                        action = np.zeros(action_spec.discrete_size, dtype=np.int32)
+                    else:
+                        # Hybrid action space
+                        action = (
+                            np.zeros(action_spec.continuous_size),
+                            np.zeros(action_spec.discrete_size, dtype=np.int32)
+                        )
                 actions[behavior_name] = [action]
             except TimeoutError:
                 print(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")

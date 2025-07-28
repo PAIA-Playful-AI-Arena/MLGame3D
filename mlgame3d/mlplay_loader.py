@@ -8,6 +8,7 @@ import os
 import sys
 import importlib.util
 import inspect
+import traceback
 from typing import Type, Optional, Any
 
 def load_mlplay_class(file_path: str) -> Optional[Type[Any]]:
@@ -105,4 +106,5 @@ def validate_mlplay_file(file_path: str) -> bool:
         return True
     except Exception as e:
         print(f"Error validating MLPlay file {file_path}: {e}")
+        traceback.print_exc()
         return False
