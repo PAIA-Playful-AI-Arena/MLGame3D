@@ -24,7 +24,7 @@ class MLPlay:
         """
         self.step_counter = 0
         self.last_checkpoint_index = -1
-        self.target_position = np.zeros(3)
+        self.target_position = np.zeros(2)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
         self.agent_forward_direction = np.zeros(2)  # Character facing direction (x, z)
@@ -49,7 +49,7 @@ class MLPlay:
         """
         self.step_counter = 0
         self.last_checkpoint_index = -1
-        self.target_position = np.zeros(3)
+        self.target_position = np.zeros(2)
         self.current_position = np.zeros(3)
         self.current_velocity = np.zeros(2)
         self.agent_forward_direction = np.zeros(2)  # Character facing direction (x, z)
@@ -190,11 +190,8 @@ class MLPlay:
         Returns:
             A 2D direction vector (x, z)
         """
-        # Calculate direction to target in 3D
-        direction = self.target_position - self.current_position
-        
         # Convert to 2D (x, z)
-        direction_2d = np.array([direction[0], direction[2]])
+        direction_2d = np.array(self.target_position)
         
         # Normalize
         if np.linalg.norm(direction_2d) > 0:
@@ -364,7 +361,7 @@ class MLPlay:
                         
             # Use SpeedCoffee (ID 2) when approaching checkpoints
             if health_percentage > 0.7 and self.item_use_cooldown <= 0:
-                distance_to_target = np.linalg.norm(self.target_position[:2] - self.current_position[:2])
+                distance_to_target = np.linalg.norm(self.target_position)
                 
                 # If we're far from the target but heading towards it
                 if 5.0 < distance_to_target < 30.0:
