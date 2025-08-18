@@ -270,14 +270,16 @@ class GameEnvironment:
         if self.observation_structure_side_channel.has_observation_structure() and len(agent_step.obs) > 0:
             # Get the first observation (which should be the vector observation)
             vector_obs = agent_step.obs[0]
-            obs_dict['flattened'] = vector_obs
-            
+
             # Parse the observation using the observation structure
             parsed_obs = self.observation_structure_side_channel.parse_observation(vector_obs)
             
             # Add the parsed observations to the dictionary
             for key, value in parsed_obs.items():
                 obs_dict[key] = value
+
+            if 'flattened' not in obs_dict:
+                obs_dict['flattened'] = vector_obs
             
         return obs_dict
     

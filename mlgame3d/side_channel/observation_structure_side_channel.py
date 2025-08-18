@@ -139,6 +139,8 @@ class ObservationStructureSideChannel(SideChannel):
                 total_size += 2
             elif item_type == "float" or item_type == "int" or item_type == "bool":
                 total_size += 1
+            elif item_type == "Vector":
+                total_size += item.get("vector_size", 0)
             elif item_type == "Grid":
                 # For grid, calculate based on grid_size and items
                 grid_size = item.get("grid_size", 0)
@@ -211,6 +213,14 @@ class ObservationStructureSideChannel(SideChannel):
                     result = False
                 else:
                     result = 0
+        elif item_type == "Vector":
+            vector_size = item.get("vector_size", 0)
+            if current_index + vector_size <= len(observation):
+                result = observation[current_index:current_index + vector_size]
+                current_index += vector_size
+            else:
+                print(f"Warning: Not enough data for {item.get('key', '')} (Vector)")
+                result = np.zeros(vector_size)
         elif item_type == "List":
             # Handle list of items
             items = item.get("items", [])
