@@ -62,13 +62,9 @@ def create_mlplay_from_file(file_path: str, observation_structure: dict, action_
     
     # Create an MLPlay instance
     try:
-        ml_play_instance = cls(observation_structure, action_space_info)
-    except TypeError:
-        # Try without action_space_info
-        try:
-            ml_play_instance = cls()
-        except Exception as e:
-            raise ValueError(f"Error creating MLPlay instance: {e}")
+        ml_play_instance = cls(observation_structure, action_space_info, name)
+    except Exception as e:
+        raise ValueError(f"Error creating MLPlay instance: {e}")
     
     # Set the name attribute if provided
     if name and not hasattr(ml_play_instance, 'name'):
