@@ -46,7 +46,7 @@ def load_mlplay_class(file_path: str) -> Optional[Type[Any]]:
     
     raise ValueError(f"No MLPlay class found in {file_path}")
 
-def create_mlplay_from_file(file_path: str, observation_structure: dict, action_space_info, name: Optional[str] = None) -> Any:
+def create_mlplay_from_file(file_path: str, observation_structure: dict, action_space_info, name: Optional[str] = None, game_parameters: Optional[dict] = None) -> Any:
     """
     Create an MLPlay instance from an external Python file.
     
@@ -54,7 +54,8 @@ def create_mlplay_from_file(file_path: str, observation_structure: dict, action_
         file_path: Path to the Python file containing the MLPlay class.
         action_space_info: Information about the action space to pass to the constructor.
         name: Optional name for the MLPlay instance. If None, the class name will be used.
-        
+        game_parameters: Optional game parameters to pass to the constructor.
+
     Returns:
         An instance of the MLPlay class.
     """
@@ -62,7 +63,7 @@ def create_mlplay_from_file(file_path: str, observation_structure: dict, action_
     
     # Create an MLPlay instance
     try:
-        ml_play_instance = cls(observation_structure, action_space_info, name)
+        ml_play_instance = cls(observation_structure, action_space_info, name, game_params=game_parameters)
     except Exception as e:
         raise ValueError(f"Error creating MLPlay instance: {e}")
     
