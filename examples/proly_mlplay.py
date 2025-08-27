@@ -15,13 +15,20 @@ class MLPlay:
     and make decisions based on them without inheriting from any base class.
     """
     
-    def __init__(self, action_space_info=None):
+    def __init__(self, observation_structure=None, action_space_info=None, name=None, game_params=None):
         """
         Initialize the MLPlay instance.
         
         Args:
-            action_space_info: Information about the action space (optional)
+            observation_structure: Dictionary describing observation space structure
+            action_space_info: ActionSpec object describing action space
+            name: Name for this MLPlay instance
+            game_params: Dictionary of game parameters
         """
+        self.action_space_info = action_space_info
+        self.name = name or "ProlyMLPlay"
+        self.observation_structure = observation_structure
+        self.game_params = game_params or {}
         self.step_counter = 0
         self.last_checkpoint_index = -1
         self.target_position = np.zeros(2)

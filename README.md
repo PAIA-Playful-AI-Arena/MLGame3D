@@ -1,12 +1,23 @@
 # MLGame3D
 
-A framework for playing Unity games with Python MLPlay classes using ML-Agents for communication with Unity.
+A framework for playing Unity games with Python agents using ML-Agents Environment.
+
+## Requirements
+
+- Python 3.11 or higher
+- Unity game with ML-Agents package integrated
 
 ## Installation
 
 ```bash
 pip install mlgame3d
 ```
+
+### Dependencies
+
+This framework depends on:
+- `mlgame3d-envs`: Core ML-Agents environment wrapper
+- `pandas`: For data processing and CSV output functionality
 
 ## Usage
 
@@ -149,24 +160,57 @@ import numpy as np
 from typing import Dict, Any
 
 class MLPlay:
-    def __init__(self, action_space_info=None):
-        # Initialize your MLPlay instance
-        pass
+    def __init__(self, observation_structure=None, action_space_info=None, name=None, game_params=None):
+        """
+        Initialize your MLPlay instance.
+        
+        Args:
+            observation_structure: Dictionary describing observation space structure
+            action_space_info: ActionSpec object describing action space
+            name: Name for this MLPlay instance
+            game_params: Dictionary of game parameters
+        """
+        self.action_space_info = action_space_info
+        self.name = name or "MLPlay"
+        self.observation_structure = observation_structure
+        self.game_params = game_params or {}
         
     def reset(self):
-        # Reset your MLPlay instance for a new episode
+        """Reset your MLPlay instance for a new episode."""
         pass
         
-    def update(self, observations, reward=0.0, done=False, info=None):
-        # Process observations and choose an action
-        # This is a simple example that returns a random 2D movement vector
-        action = np.random.uniform(-1, 1, 2)
+    def update(self, observations, done=False, info=None):
+        """
+        Process observations and choose an action.
         
-        # Normalize the action vector
-        if np.linalg.norm(action) > 0:
-            action = action / np.linalg.norm(action)
+        Args:
+            observations: Dictionary of observations from the environment
+            done: Whether the episode is done
+            info: Additional information
             
-        return action
+        Returns:
+            Action in the format required by the action space
+        """
+        # Determine action format based on action space
+        if self.action_space_info.is_continuous():
+            # Pure continuous action space
+            return np.random.uniform(-1, 1, self.action_space_info.continuous_size)
+            
+        elif self.action_space_info.is_discrete():
+            # Pure discrete action space
+            return np.array([
+                np.random.randint(0, branch) 
+                for branch in self.action_space_info.discrete_branches
+            ], dtype=np.int32)
+            
+        else:
+            # Hybrid action space (both continuous and discrete)
+            continuous = np.random.uniform(-1, 1, self.action_space_info.continuous_size)
+            discrete = np.array([
+                np.random.randint(0, branch) 
+                for branch in self.action_space_info.discrete_branches
+            ], dtype=np.int32)
+            return (continuous, discrete)
 ```
 
 ### Loading External MLPlay Files
@@ -176,6 +220,7 @@ You can create custom MLPlay classes in separate Python files and load them at r
 Requirements for external MLPlay files:
 1. The file must contain a class named `MLPlay`
 2. The class must implement `__init__`, `update`, and `reset` methods
+3. The `__init__` method should accept the parameters: `observation_structure`, `action_space_info`, `name`, and `game_params`
 
 Example of an external MLPlay file (`simple_mlplay.py`):
 
@@ -184,20 +229,61 @@ import numpy as np
 from typing import Dict, Any
 
 class MLPlay:
-    def __init__(self, action_space_info=None):
+    def __init__(self, observation_structure=None, action_space_info=None, name=None, game_params=None):
+        """
+        Initialize the MLPlay instance.
+        
+        Args:
+            observation_structure: Dictionary describing observation space structure
+            action_space_info: ActionSpec object describing action space
+            name: Name for this MLPlay instance
+            game_params: Dictionary of game parameters
+        """
+        self.action_space_info = action_space_info
+        self.name = name or "SimpleMLPlay"
+        self.observation_structure = observation_structure
+        self.game_params = game_params or {}
         self.step_counter = 0
         
     def reset(self):
+        """Reset for a new episode."""
         self.step_counter = 0
         
-    def update(self, observations, reward=0.0, done=False, info=None):
+    def update(self, observations, done=False, info=None):
+        """
+        Process observations and choose an action.
+        
+        Args:
+            observations: Dictionary of observations from the environment
+            done: Whether the episode is done
+            info: Additional information
+            
+        Returns:
+            Action in the format required by the action space
+        """
         self.step_counter += 1
         
-        # Alternate between different actions
-        if self.step_counter % 2 == 0:
-            return np.array([1.0, 0.0])  # Move right
+        # Simple strategy: alternate between different movement patterns
+        if self.action_space_info.is_continuous():
+            # Pure continuous action space
+            if self.step_counter % 4 < 2:
+                return np.array([1.0, 0.0])  # Move right
+            else:
+                return np.array([0.0, 1.0])  # Move forward
+                
+        elif self.action_space_info.is_discrete():
+            # Pure discrete action space
+            return np.array([self.step_counter % 2], dtype=np.int32)
+            
         else:
-            return np.array([0.0, 1.0])  # Move forward
+            # Hybrid action space
+            if self.step_counter % 4 < 2:
+                continuous = np.array([1.0, 0.0])  # Move right
+            else:
+                continuous = np.array([0.0, 1.0])  # Move forward
+                
+            discrete = np.array([self.step_counter % 2], dtype=np.int32)
+            return (continuous, discrete)
 ```
 
 You can then use these MLPlay classes with the command-line interface:
@@ -217,18 +303,46 @@ Or load them programmatically:
 ```python
 from mlgame3d.mlplay_loader import create_mlplay_from_file
 
+# You need to get these from the environment first
+env = GameEnvironment(file_name="game.exe", controlled_players=[0], control_modes=["mlplay"])
+behavior_name = env.behavior_names[0]
+observation_structure = env.get_observation_structure(behavior_name)
+action_space_info = env.get_action_space_info(behavior_name)
+
 # Create an MLPlay instance from an external file
-mlplay = create_mlplay_from_file("simple_mlplay.py", action_space_info)
+mlplay = create_mlplay_from_file(
+    file_path="simple_mlplay.py", 
+    observation_structure=observation_structure,
+    action_space_info=action_space_info,
+    name="MyCustomMLPlay",
+    game_parameters={"some_param": "value"}
+)
 ```
 
 ## Framework Structure
 
-- `game_env.py`: Provides the `GameEnvironment` class for communicating with Unity games
+### Core Components
+
+- `game_env.py`: Provides the `GameEnvironment` class for communicating with Unity games via ML-Agents
 - `mlplay.py`: Provides the `RandomMLPlay` class for generating random actions
 - `game_runner.py`: Provides the `GameRunner` class for running games and collecting statistics
 - `mlplay_loader.py`: Provides functionality for loading MLPlay classes from external Python files
 - `__main__.py`: Provides the command-line interface
-- `examples/`: Contains example MLPlay implementations
+
+### Side Channels
+
+The framework includes several side channels for enhanced Unity communication:
+
+- `observation_structure_side_channel.py`: Handles observation space structure information
+- `player_control_side_channel.py`: Manages player control modes (manual, MLPlay, hidden)
+- `game_parameters_side_channel.py`: Sends game parameters to Unity
+- `ranking_side_channel.py`: Receives ranking/result data from Unity
+- `keyboard_state_side_channel.py`: Manages keyboard input state for manual control
+
+### Examples
+
+- `examples/simple_mlplay.py`: Basic MLPlay implementation with random movement
+- `examples/proly_mlplay.py`: Game-specific MLPlay example for Proly racing game
 
 ## Notes
 
@@ -244,11 +358,27 @@ mlplay = create_mlplay_from_file("simple_mlplay.py", action_space_info)
   - When using the `--result-output-file` option, result data will be saved to the specified CSV file
   - Each episode's result data will be appended to the file with the episode column always appearing first
   - If the file path doesn't end with '.csv', it will be automatically added
+  - CSV output includes episode number, player rankings, and any additional game-specific metrics
+- Action Space Support:
+  - Supports continuous action spaces (floating-point values)
+  - Supports discrete action spaces (integer selections)
+  - Supports hybrid action spaces (combination of continuous and discrete)
+- Side Channel Communication:
+  - Real-time parameter passing to Unity during runtime
+  - Observation structure discovery for dynamic adaptation
+  - Player control mode switching without restarting the environment
 
 ## Contributing
 
-Pull requests and issues are welcome to improve this framework.
+Pull requests and issues are welcome to improve this framework. Please visit the [GitHub repository](https://github.com/PAIA-Playful-AI-Arena/MLGame3D) for more information.
+
+## Project Links
+
+- **Homepage**: https://github.com/PAIA-Playful-AI-Arena/MLGame3D
+- **Repository**: https://github.com/PAIA-Playful-AI-Arena/MLGame3D
+- **Documentation**: See this README for detailed usage instructions
+- **Issues**: Report bugs and request features on GitHub
 
 ## License
 
-MIT
+MIT License - see LICENSE file for details.
