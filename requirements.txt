@@ -1,2 +1,2 @@
-mlgame3d-envs
+mlgame3d-envs>=0.2.0
 pandas
