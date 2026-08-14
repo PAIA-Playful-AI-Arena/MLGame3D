@@ -49,6 +49,7 @@ Options include:
 - `--ai4`, `-i4`: Control mode for instance 4. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
 - `--game-param`, `-gp`: Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters.
 - `--result-output-file`, `-o`: Path to a CSV file where result data will be saved. Each episode's result will be appended to this file with the episode column always appearing first. If the file path doesn't end with '.csv', it will be automatically added.
+- `--debug`: Show all debug info in console and record them in `debug.log`
 
 Examples:
 

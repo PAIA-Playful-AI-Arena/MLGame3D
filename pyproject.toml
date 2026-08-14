@@ -19,7 +19,8 @@ classifiers = [
 requires-python = ">=3.11"
 dependencies = [
     "mlgame3d-envs>=0.2.0",
-    "pandas"
+    "pandas",
+    "loguru"
 ]
 
 [project.urls]
@@ -27,4 +28,4 @@ Homepage = "https://github.com/PAIA-Playful-AI-Arena/MLGame3D"
 Repository = "https://github.com/PAIA-Playful-AI-Arena/MLGame3D"
 
 [tool.setuptools]
-packages = ["mlgame3d", "mlgame3d.side_channel"]
+packages = ["mlgame3d", "mlgame3d.side_channel", "mlgame3d.utils"]

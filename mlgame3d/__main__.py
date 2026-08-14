@@ -15,6 +15,7 @@ from mlgame3d.game_env import GameEnvironment
 from mlgame3d.mlplay import RandomMLPlay
 from mlgame3d.game_runner import GameRunner
 from mlgame3d.mlplay_loader import create_mlplay_from_file, validate_mlplay_file
+from mlgame3d.utils.logger import logger
 from mlagents_envs.exception import UnityCommunicatorStoppedException
 
 # Set environment variables to suppress gRPC warnings
@@ -162,7 +163,15 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
         default=None,
         help="Path to a CSV file where result data will be saved. Each episode's result will be appended to this file."
     )
-    
+
+    parser.add_argument(
+        "--debug",
+        action="store_true",
+        dest="is_debug",
+        default=False,
+        help="show all debug info in console and record them in debug.log"
+    )
+
     return parser.parse_args(args)
 
 def process_ai_settings(parsed_args):
@@ -244,9 +253,19 @@ def main(args: Optional[List[str]] = None) -> int:
     """
     parsed_args = parse_args(args)
 
+    if parsed_args.is_debug:
+        logger.add(sys.stdout, level="DEBUG")
+        logger.add(
+            "debug.log",
+            level="DEBUG",
+            rotation="10 MB",  # Rotate after the log file reaches 10 MB
+            retention=1,  # Keep only the most recent rotated log file
+            compression=None,  # Do not compress the log file
+        )
+
     # Process AI settings
     ai_settings, ai_names = process_ai_settings(parsed_args)
-    
+
     try:
         # Validate MLPlay-related arguments
         validate_mlplay_args(parsed_args)
@@ -375,7 +394,7 @@ def main(args: Optional[List[str]] = None) -> int:
             env.close()
     
     except Exception as e:
-        traceback.print_exc()
+        logger.exception(f"Exception in {__file__} : {e.__str__()}")
         return 1
 
 if __name__ == "__main__":

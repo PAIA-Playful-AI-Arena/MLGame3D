@@ -12,6 +12,9 @@
 # Environemnt logfile
 *Project.log
 
+# Log files
+*.log
+
 # Custom settings asset
 *.settings.asset*
 
