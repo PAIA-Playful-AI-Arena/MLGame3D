@@ -9,6 +9,8 @@ import json
 from typing import Set
 from mlagents_envs.side_channel import SideChannel, IncomingMessage
 
+from mlgame3d.utils.logger import logger
+
 class KeyboardStateSideChannel(SideChannel):
     """
     A side channel for receiving keyboard state information from Unity.
@@ -53,7 +55,7 @@ class KeyboardStateSideChannel(SideChannel):
                 else:
                     self.has_changed = False
         except json.JSONDecodeError:
-            print(f"Error decoding JSON: {json_str}")
+            logger.error(f"Error decoding JSON: {json_str}")
     
     def get_pressed_keys(self) -> Set[str]:
         """

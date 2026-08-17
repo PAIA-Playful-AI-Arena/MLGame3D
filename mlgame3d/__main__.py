@@ -7,7 +7,6 @@ This module provides the command-line interface for the MLGame3D framework.
 import argparse
 import sys
 import os
-import traceback
 from typing import List, Optional
 
 from mlgame3d import __version__
@@ -254,6 +253,8 @@ def main(args: Optional[List[str]] = None) -> int:
     parsed_args = parse_args(args)
 
     if parsed_args.is_debug:
+        # Replace the default INFO stdout sink with a DEBUG one so messages are not printed twice
+        logger.remove()
         logger.add(sys.stdout, level="DEBUG")
         logger.add(
             "debug.log",
@@ -356,15 +357,14 @@ def main(args: Optional[List[str]] = None) -> int:
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1
                         except Exception as e:
-                            print(f"Error creating MLPlay instance from file {setting}: {e}")
-                            traceback.print_exc()
-                            print(f"Using RandomMLPlay for player {player_idx+1} instead.")
+                            logger.exception(f"Error creating MLPlay instance from file {setting}: {e}")
+                            logger.warning(f"Using RandomMLPlay for player {player_idx+1} instead.")
                             mlplay = RandomMLPlay(action_space_info, name=f"RandomMLPlay{player_idx+1}")
                             mlplays.append(mlplay)
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1
                     else:
-                        print(f"Warning: Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
+                        logger.warning(f"Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
             
             # Create a game runner
             # Calculate MLPlay timeout based on 20ms * decision period, adjusted by time scale
@@ -386,7 +386,7 @@ def main(args: Optional[List[str]] = None) -> int:
             return 0
         
         except UnityCommunicatorStoppedException:
-            print("Unity environment stopped.")
+            logger.info("Unity environment stopped.")
             return 0
             
         finally:

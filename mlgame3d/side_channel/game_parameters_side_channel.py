@@ -9,6 +9,8 @@ import json
 from typing import Dict, Any
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
+from mlgame3d.utils.logger import logger
+
 class GameParametersSideChannel(SideChannel):
     """
     A side channel for sending game configuration parameters to Unity.
@@ -44,9 +46,9 @@ class GameParametersSideChannel(SideChannel):
             try:
                 params_json = message[len("CURRENT_PARAMETERS:"):]
                 received_params = json.loads(params_json)
-                print(f"Current game parameters: {received_params}")
+                logger.info(f"Current game parameters: {received_params}")
             except json.JSONDecodeError:
-                print(f"Error parsing parameters JSON: {params_json}")
+                logger.error(f"Error parsing parameters JSON: {params_json}")
     
     def set_parameter(self, key: str, value: Any) -> None:
         """

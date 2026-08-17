@@ -8,8 +8,9 @@ import os
 import sys
 import importlib.util
 import inspect
-import traceback
 from typing import Type, Optional, Any
+
+from mlgame3d.utils.logger import logger
 
 def load_mlplay_class(file_path: str) -> Optional[Type[Any]]:
     """
@@ -94,14 +95,13 @@ def validate_mlplay_file(file_path: str) -> bool:
         has_reset = hasattr(cls, 'reset') and callable(getattr(cls, 'reset'))
         
         if not (has_init and has_update):
-            print(f"Warning: MLPlay class in {file_path} does not have the required methods (__init__, update).")
+            logger.warning(f"MLPlay class in {file_path} does not have the required methods (__init__, update).")
             return False
-        
+
         if not has_reset:
-            print(f"Warning: MLPlay class in {file_path} does not have a reset method.")
-        
+            logger.warning(f"MLPlay class in {file_path} does not have a reset method.")
+
         return True
     except Exception as e:
-        print(f"Error validating MLPlay file {file_path}: {e}")
-        traceback.print_exc()
+        logger.exception(f"Error validating MLPlay file {file_path}: {e}")
         return False

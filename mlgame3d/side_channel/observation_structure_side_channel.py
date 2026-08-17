@@ -10,6 +10,8 @@ import numpy as np
 from typing import Dict, Any
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
+from mlgame3d.utils.logger import logger
+
 class ObservationStructureSideChannel(SideChannel):
     """
     A side channel for receiving the observation structure from Unity.
@@ -42,7 +44,7 @@ class ObservationStructureSideChannel(SideChannel):
             # Parse the JSON string
             self.observation_structure = json.loads(json_str)
         except json.JSONDecodeError:
-            print(f"Error decoding JSON: {json_str}")
+            logger.error(f"Error decoding JSON: {json_str}")
     
     def request_observation_structure(self) -> None:
         """
@@ -54,7 +56,7 @@ class ObservationStructureSideChannel(SideChannel):
             outgoing_msg.write_string("REQUEST_OBSERVATION_STRUCTURE")
             self.queue_message_to_send(outgoing_msg)
             self.has_requested_structure = True
-            print("Requested observation structure from Unity")
+            logger.info("Requested observation structure from Unity")
     
     def has_observation_structure(self) -> bool:
         """
@@ -76,7 +78,7 @@ class ObservationStructureSideChannel(SideChannel):
             A dictionary containing the parsed observation.
         """
         if not self.has_observation_structure():
-            print("Warning: Observation structure not received yet. Cannot parse observation.")
+            logger.warning("Observation structure not received yet. Cannot parse observation.")
             return {"obs_1": observation}
         
         # Parse the observation recursively
@@ -187,7 +189,7 @@ class ObservationStructureSideChannel(SideChannel):
                 result = observation[current_index:current_index + 3]
                 current_index += 3
             else:
-                print(f"Warning: Not enough data for {item.get('key', '')} (Vector3)")
+                logger.warning(f"Not enough data for {item.get('key', '')} (Vector3)")
                 result = np.zeros(3)
         elif item_type == "Vector2":
             # Vector2 has 2 components (x, y)
@@ -195,7 +197,7 @@ class ObservationStructureSideChannel(SideChannel):
                 result = observation[current_index:current_index + 2]
                 current_index += 2
             else:
-                print(f"Warning: Not enough data for {item.get('key', '')} (Vector2)")
+                logger.warning(f"Not enough data for {item.get('key', '')} (Vector2)")
                 result = np.zeros(2)
         elif item_type == "float" or item_type == "int" or item_type == "bool":
             # float, int and bool are single values
@@ -208,7 +210,7 @@ class ObservationStructureSideChannel(SideChannel):
                     result = observation[current_index]
                 current_index += 1
             else:
-                print(f"Warning: Not enough data for {item.get('key', '')} ({item_type})")
+                logger.warning(f"Not enough data for {item.get('key', '')} ({item_type})")
                 if item_type == "bool":
                     result = False
                 else:
@@ -219,7 +221,7 @@ class ObservationStructureSideChannel(SideChannel):
                 result = observation[current_index:current_index + vector_size]
                 current_index += vector_size
             else:
-                print(f"Warning: Not enough data for {item.get('key', '')} (Vector)")
+                logger.warning(f"Not enough data for {item.get('key', '')} (Vector)")
                 result = np.zeros(vector_size)
         elif item_type == "List":
             # Handle list of items
@@ -280,7 +282,7 @@ class ObservationStructureSideChannel(SideChannel):
             result = grid_data
         else:
             # Unknown type, skip
-            print(f"Warning: Unknown type {item_type} for {item.get('key', '')}")
+            logger.warning(f"Unknown type {item_type} for {item.get('key', '')}")
             result = None
         
         return result, current_index

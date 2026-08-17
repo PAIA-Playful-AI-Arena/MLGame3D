@@ -4,12 +4,12 @@ Game Runner Module
 This module provides a class for running games with MLPlay instances in Unity environments asynchronously.
 """
 
-import traceback
 import numpy as np
 from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 from mlgame3d.game_env import GameEnvironment
+from mlgame3d.utils.logger import logger
 
 class GameRunner:
     """
@@ -79,7 +79,7 @@ class GameRunner:
             done = False
             info = {}
             
-            print(f"Starting episode {episode+1}/{self.max_episodes}")
+            logger.info(f"Starting episode {episode+1}/{self.max_episodes}")
             
             # Run the episode
             while not done:
@@ -94,15 +94,14 @@ class GameRunner:
                 
                 episode_step += 1
             
-            print(f"Episode {episode+1} finished: steps={episode_step}")
+            logger.info(f"Episode {episode+1} finished: steps={episode_step}")
 
             for mlplay in self.mlplays:
                 if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
                     try:
                         mlplay.reset()
                     except Exception as e:
-                        print(f"Error resetting MLPlay instance {mlplay.name}: {e}")
-                        traceback.print_exc()
+                        logger.exception(f"Error resetting MLPlay instance {mlplay.name}: {e}")
         
         return
     
@@ -130,11 +129,11 @@ class GameRunner:
                 behavior_name = self.mlplay_to_behavior_map.get(i)
                 
                 if behavior_name is None:
-                    print(f"Warning: No behavior name mapped for MLPlay instance {i}. Skipping.")
+                    logger.warning(f"No behavior name mapped for MLPlay instance {i}. Skipping.")
                     continue
-                    
+
                 if behavior_name not in observations:
-                    print(f"Warning: Behavior name {behavior_name} not found in observations. Skipping.")
+                    logger.warning(f"Behavior name {behavior_name} not found in observations. Skipping.")
                     continue
                 
                 # Get keyboard state if available
@@ -169,7 +168,7 @@ class GameRunner:
                     continue
                 futures.append((future, i))
             else:
-                print(f"Warning: MLPlay instance {i+1} does not have an update method.")
+                logger.warning(f"MLPlay instance {i+1} does not have an update method.")
         
         # Wait for all futures to complete with timeout
         actions = {}  # Initialize with None
@@ -184,7 +183,7 @@ class GameRunner:
                 action = future.result(timeout=self.mlplay_timeout)
                 # Use a default action if the MLPlay instance returns None
                 if action is None:
-                    print(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
+                    logger.warning(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
                     action_spec = self.env.get_action_space_info(behavior_name)
                     if action_spec.is_continuous():
                         action = np.zeros(action_spec.continuous_size)
@@ -198,7 +197,7 @@ class GameRunner:
                         )
                 actions[behavior_name] = [action]
             except TimeoutError:
-                print(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
+                logger.warning(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
                 # Cancel the future to prevent it from continuing to run in the background
                 future.cancel()
                 # Use a default action if the MLPlay instance times out
@@ -214,8 +213,7 @@ class GameRunner:
                         np.zeros(action_spec.discrete_size, dtype=np.int32)
                     )]
             except Exception as e:
-                print(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
-                traceback.print_exc()
+                logger.exception(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
                 # Use a default action if the MLPlay instance fails
                 action_spec = self.env.get_action_space_info(behavior_name)
                 if action_spec.is_continuous():
