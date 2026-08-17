@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mlgame3d"
-version = "0.10.0"
+version = "0.10.1"
 description = "A framework for playing Unity games with Python agents using ML-Agents Environment."
 readme = "README.md"
 authors = [
