@@ -9,6 +9,7 @@ from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 from mlgame3d.game_env import GameEnvironment
+from mlgame3d.mlplay import get_default_action
 from mlgame3d.recorder import ErrorEnum, recorder
 
 class GameRunner:
@@ -197,47 +198,17 @@ class GameRunner:
                 # Use a default action if the MLPlay instance returns None
                 if action is None:
                     recorder.warning(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
-                    action_spec = self.env.get_action_space_info(behavior_name)
-                    if action_spec.is_continuous():
-                        action = np.zeros(action_spec.continuous_size)
-                    elif action_spec.is_discrete():
-                        action = np.zeros(action_spec.discrete_size, dtype=np.int32)
-                    else:
-                        # Hybrid action space
-                        action = (
-                            np.zeros(action_spec.continuous_size),
-                            np.zeros(action_spec.discrete_size, dtype=np.int32)
-                        )
+                    action = get_default_action(self.env.get_action_space_info(behavior_name))
                 actions[behavior_name] = [action]
             except TimeoutError:
                 recorder.warning(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
                 # Cancel the future to prevent it from continuing to run in the background
                 future.cancel()
                 # Use a default action if the MLPlay instance times out
-                action_spec = self.env.get_action_space_info(behavior_name)
-                if action_spec.is_continuous():
-                    actions[behavior_name] = [np.zeros(action_spec.continuous_size)]
-                elif action_spec.is_discrete():
-                    actions[behavior_name] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
-                else:
-                    # Hybrid action space
-                    actions[behavior_name] = [(
-                        np.zeros(action_spec.continuous_size),
-                        np.zeros(action_spec.discrete_size, dtype=np.int32)
-                    )]
+                actions[behavior_name] = [get_default_action(self.env.get_action_space_info(behavior_name))]
             except Exception as e:
                 recorder.exception(ErrorEnum.AI_EXEC_ERROR, f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
                 # Use a default action if the MLPlay instance fails
-                action_spec = self.env.get_action_space_info(behavior_name)
-                if action_spec.is_continuous():
-                    actions[behavior_name] = [np.zeros(action_spec.continuous_size)]
-                elif action_spec.is_discrete():
-                    actions[behavior_name] = [np.zeros(action_spec.discrete_size, dtype=np.int32)]
-                else:
-                    # Hybrid action space
-                    actions[behavior_name] = [(
-                        np.zeros(action_spec.continuous_size),
-                        np.zeros(action_spec.discrete_size, dtype=np.int32)
-                    )]
-        
+                actions[behavior_name] = [get_default_action(self.env.get_action_space_info(behavior_name))]
+
         return actions

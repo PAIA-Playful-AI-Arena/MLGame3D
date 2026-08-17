@@ -12,7 +12,7 @@ from typing import List, Optional
 
 from mlgame3d import __version__
 from mlgame3d.game_env import GameEnvironment
-from mlgame3d.mlplay import RandomMLPlay
+from mlgame3d.mlplay import DefaultActionMLPlay
 from mlgame3d.game_runner import GameRunner
 from mlgame3d.mlplay_loader import create_mlplay_from_file, validate_mlplay_file
 from mlgame3d.recorder import ErrorEnum, recorder
@@ -358,8 +358,8 @@ def main(args: Optional[List[str]] = None) -> int:
                             mlplay_index += 1
                         except Exception as e:
                             recorder.exception(ErrorEnum.AI_INIT_ERROR, f"Error creating MLPlay instance from file {setting}: {e}")
-                            recorder.warning(f"Using RandomMLPlay for player {player_idx+1} instead.")
-                            mlplay = RandomMLPlay(action_space_info, name=f"RandomMLPlay{player_idx+1}")
+                            recorder.warning(f"Using default action for player {player_idx+1} instead.")
+                            mlplay = DefaultActionMLPlay(action_space_info, name=f"P{player_idx+1}")
                             mlplays.append(mlplay)
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1

@@ -325,7 +325,7 @@ mlplay = create_mlplay_from_file(
 ### Core Components
 
 - `game_env.py`: Provides the `GameEnvironment` class for communicating with Unity games via ML-Agents
-- `mlplay.py`: Provides the `RandomMLPlay` class for generating random actions
+- `mlplay.py`: Provides the `RandomMLPlay` class for generating random actions, the `DefaultActionMLPlay` class that always returns the default (all-zero) action, and the `get_default_action()` helper
 - `game_runner.py`: Provides the `GameRunner` class for running games and collecting statistics
 - `mlplay_loader.py`: Provides functionality for loading MLPlay classes from external Python files
 - `__main__.py`: Provides the command-line interface
