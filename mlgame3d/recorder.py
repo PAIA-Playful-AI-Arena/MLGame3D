@@ -53,9 +53,12 @@ class GameRecorder:
     """
     Collects warnings and errors raised while running a game.
 
-    Every warning/error is logged to the console. When a record folder is set,
-    it is also appended to ``warning.json`` / ``error.json`` in that folder
-    (the whole list is rewritten on each update, like MLGame's recorder).
+    Every warning/error is logged to the console immediately and buffered in
+    memory. When a record folder is set, ``flush()`` writes the accumulated
+    lists to ``warning.json`` / ``error.json`` in that folder (the whole list is
+    rewritten each time). The game runner calls ``flush()`` at the end of every
+    episode and the CLI entry point calls it once more on exit, so file I/O
+    stays out of the per-step game loop.
 
     ``episode`` and ``step`` are updated by the game runner so that each
     record carries the position in the game where it happened. ``step`` is
@@ -69,6 +72,9 @@ class GameRecorder:
         self.step: int = 0
         self._warnings: List[GameWarning] = []
         self._errors: List[GameError] = []
+        # Track what has changed since the last flush so unchanged files are not rewritten
+        self._warnings_dirty: bool = False
+        self._errors_dirty: bool = False
 
     def set_record_folder(self, folder: Optional[str]) -> None:
         """
@@ -86,31 +92,45 @@ class GameRecorder:
         return self._errors
 
     def warning(self, message: str) -> None:
-        """Log a warning and record it in warning.json."""
+        """Log a warning and record it (written to warning.json on the next flush)."""
         logger.opt(depth=1).warning(message)
         self._warnings.append(GameWarning(message=message, step=self.step, episode=self.episode))
-        self._write("warning.json", self._warnings)
+        self._warnings_dirty = True
 
     def error(self, error_type: ErrorEnum, message: str) -> None:
-        """Log an error and record it in error.json."""
+        """Log an error and record it (written to error.json on the next flush)."""
         logger.opt(depth=1).error(message)
         self._append_error(error_type, message)
 
     def exception(self, error_type: ErrorEnum, message: str) -> None:
         """
         Log the exception currently being handled (with traceback) and record it
-        in error.json. Must be called from within an ``except`` block.
+        (written to error.json on the next flush). Must be called from within an
+        ``except`` block.
         """
         logger.opt(depth=1, exception=True).error(message)
         self._append_error(error_type, f"{message}\n{traceback.format_exc()}")
 
-    def _append_error(self, error_type: ErrorEnum, message: str) -> None:
-        self._errors.append(GameError(error_type=error_type, message=message, step=self.step, episode=self.episode))
-        self._write("error.json", self._errors)
-
-    def _write(self, filename: str, data) -> None:
+    def flush(self) -> None:
+        """
+        Write the accumulated warnings/errors to warning.json / error.json.
+        Does nothing when no record folder is set or nothing changed since the
+        last flush.
+        """
         if self.record_folder is None:
             return
+        if self._warnings_dirty:
+            self._write("warning.json", self._warnings)
+            self._warnings_dirty = False
+        if self._errors_dirty:
+            self._write("error.json", self._errors)
+            self._errors_dirty = False
+
+    def _append_error(self, error_type: ErrorEnum, message: str) -> None:
+        self._errors.append(GameError(error_type=error_type, message=message, step=self.step, episode=self.episode))
+        self._errors_dirty = True
+
+    def _write(self, filename: str, data) -> None:
         path = os.path.join(self.record_folder, filename)
         try:
             write_json(path, data)

@@ -71,44 +71,51 @@ class GameRunner:
         Returns:
             A dictionary of statistics about the run
         """
-        for episode in range(self.max_episodes):
-            # Let the recorder know where we are so warnings/errors carry the right position
-            recorder.episode = episode + 1
-            recorder.step = 0
+        try:
+            for episode in range(self.max_episodes):
+                # Let the recorder know where we are so warnings/errors carry the right position
+                recorder.episode = episode + 1
+                recorder.step = 0
 
-            # Reset the environment and MLPlay instances
-            observations = self.env.reset()
+                # Reset the environment and MLPlay instances
+                observations = self.env.reset()
 
-            episode_step = 0
-            done = False
-            info = {}
+                episode_step = 0
+                done = False
+                info = {}
 
-            print(f"Starting episode {episode+1}/{self.max_episodes}")
+                print(f"Starting episode {episode+1}/{self.max_episodes}")
 
-            # Run the episode
-            while not done:
-                recorder.step = episode_step
+                # Run the episode
+                while not done:
+                    recorder.step = episode_step
 
-                # Get actions from all MLPlay instances asynchronously
-                actions = self._update_mlplays_async(observations, done, info)
-                
-                # Take a step in the environment
-                next_observations, rewards, done, info = self.env.step(actions)
-                
-                # Update for the next step
-                observations = next_observations
-                
-                episode_step += 1
-            
-            print(f"Episode {episode+1} finished: steps={episode_step}")
+                    # Get actions from all MLPlay instances asynchronously
+                    actions = self._update_mlplays_async(observations, done, info)
 
-            for mlplay in self.mlplays:
-                if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
-                    try:
-                        mlplay.reset()
-                    except Exception as e:
-                        recorder.exception(ErrorEnum.AI_EXEC_ERROR, f"Error resetting MLPlay instance {mlplay.name}: {e}")
-        
+                    # Take a step in the environment
+                    next_observations, rewards, done, info = self.env.step(actions)
+
+                    # Update for the next step
+                    observations = next_observations
+
+                    episode_step += 1
+
+                print(f"Episode {episode+1} finished: steps={episode_step}")
+
+                for mlplay in self.mlplays:
+                    if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
+                        try:
+                            mlplay.reset()
+                        except Exception as e:
+                            recorder.exception(ErrorEnum.AI_EXEC_ERROR, f"Error resetting MLPlay instance {mlplay.name}: {e}")
+
+                # Write this episode's warnings/errors to the record folder
+                recorder.flush()
+        finally:
+            # Make sure anything buffered is written even if the run is interrupted mid-episode
+            recorder.flush()
+
         return
     
     def _update_mlplays_async(self, 

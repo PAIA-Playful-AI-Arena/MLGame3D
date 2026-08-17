@@ -362,7 +362,7 @@ The framework includes several side channels for enhanced Unity communication:
   - CSV output includes episode number, player rankings, and any additional game-specific metrics
 - Warning / error records:
   - Warnings and errors (e.g. MLPlay timeouts, exceptions raised in `update()`) are always shown in the console
-  - When using the `--record-folder` option, they are also written to `warning.json` and `error.json` inside a timestamp sub-folder
+  - When using the `--record-folder` option, they are also written to `warning.json` and `error.json` inside a timestamp sub-folder (the files are updated at the end of each episode and when the program exits)
   - Each record contains `message`, `episode`, `step` (the number of `env.step()` calls made so far in that episode, i.e. the decision index) and `time_stamp`; errors additionally contain `error_type` (`AI_INIT_ERROR`, `AI_EXEC_ERROR`, `GAME_EXEC_ERROR`, `COMMAND_ERROR`)
 - Action Space Support:
   - Supports continuous action spaces (floating-point values)

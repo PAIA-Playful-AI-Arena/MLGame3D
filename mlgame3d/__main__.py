@@ -397,5 +397,9 @@ def main(args: Optional[List[str]] = None) -> int:
         recorder.exception(ErrorEnum.GAME_EXEC_ERROR, f"Exception in {__file__} : {e.__str__()}")
         return 1
 
+    finally:
+        # Write any warnings/errors recorded outside the game loop (setup, shutdown, top-level exception)
+        recorder.flush()
+
 if __name__ == "__main__":
     sys.exit(main())
