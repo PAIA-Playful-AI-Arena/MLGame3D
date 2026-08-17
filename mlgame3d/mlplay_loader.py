@@ -10,7 +10,7 @@ import importlib.util
 import inspect
 from typing import Type, Optional, Any
 
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
 
 def load_mlplay_class(file_path: str) -> Optional[Type[Any]]:
     """
@@ -95,13 +95,13 @@ def validate_mlplay_file(file_path: str) -> bool:
         has_reset = hasattr(cls, 'reset') and callable(getattr(cls, 'reset'))
         
         if not (has_init and has_update):
-            logger.warning(f"MLPlay class in {file_path} does not have the required methods (__init__, update).")
+            recorder.warning(f"MLPlay class in {file_path} does not have the required methods (__init__, update).")
             return False
 
         if not has_reset:
-            logger.warning(f"MLPlay class in {file_path} does not have a reset method.")
+            recorder.warning(f"MLPlay class in {file_path} does not have a reset method.")
 
         return True
     except Exception as e:
-        logger.exception(f"Error validating MLPlay file {file_path}: {e}")
+        recorder.exception(ErrorEnum.AI_INIT_ERROR, f"Error validating MLPlay file {file_path}: {e}")
         return False

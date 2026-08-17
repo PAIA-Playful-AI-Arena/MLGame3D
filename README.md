@@ -49,7 +49,7 @@ Options include:
 - `--ai4`, `-i4`: Control mode for instance 4. Can be a path to a Python file containing an MLPlay class, 'hidden', or 'manual' (default).
 - `--game-param`, `-gp`: Game parameter in the format KEY VALUE. Can be specified multiple times for different parameters.
 - `--result-output-file`, `-o`: Path to a CSV file where result data will be saved. Each episode's result will be appended to this file with the episode column always appearing first. If the file path doesn't end with '.csv', it will be automatically added.
-- `--debug`: Show all debug info in console and record them in `debug.log`
+- `--record-folder`, `-r`: Folder where `warning.json` and `error.json` will be saved. A timestamp sub-folder (e.g. `20260817-130501`) is created inside it for each run.
 
 Examples:
 
@@ -360,6 +360,10 @@ The framework includes several side channels for enhanced Unity communication:
   - Each episode's result data will be appended to the file with the episode column always appearing first
   - If the file path doesn't end with '.csv', it will be automatically added
   - CSV output includes episode number, player rankings, and any additional game-specific metrics
+- Warning / error records:
+  - Warnings and errors (e.g. MLPlay timeouts, exceptions raised in `update()`) are always shown in the console
+  - When using the `--record-folder` option, they are also written to `warning.json` and `error.json` inside a timestamp sub-folder
+  - Each record contains `message`, `episode`, `step` (the number of `env.step()` calls made so far in that episode, i.e. the decision index) and `time_stamp`; errors additionally contain `error_type` (`AI_INIT_ERROR`, `AI_EXEC_ERROR`, `GAME_EXEC_ERROR`, `COMMAND_ERROR`)
 - Action Space Support:
   - Supports continuous action spaces (floating-point values)
   - Supports discrete action spaces (integer selections)

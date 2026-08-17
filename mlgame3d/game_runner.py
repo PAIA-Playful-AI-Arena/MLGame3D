@@ -9,7 +9,7 @@ from typing import Dict, Any, List
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 
 from mlgame3d.game_env import GameEnvironment
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
 
 class GameRunner:
     """
@@ -72,17 +72,23 @@ class GameRunner:
             A dictionary of statistics about the run
         """
         for episode in range(self.max_episodes):
+            # Let the recorder know where we are so warnings/errors carry the right position
+            recorder.episode = episode + 1
+            recorder.step = 0
+
             # Reset the environment and MLPlay instances
             observations = self.env.reset()
 
             episode_step = 0
             done = False
             info = {}
-            
-            logger.info(f"Starting episode {episode+1}/{self.max_episodes}")
-            
+
+            print(f"Starting episode {episode+1}/{self.max_episodes}")
+
             # Run the episode
             while not done:
+                recorder.step = episode_step
+
                 # Get actions from all MLPlay instances asynchronously
                 actions = self._update_mlplays_async(observations, done, info)
                 
@@ -94,14 +100,14 @@ class GameRunner:
                 
                 episode_step += 1
             
-            logger.info(f"Episode {episode+1} finished: steps={episode_step}")
+            print(f"Episode {episode+1} finished: steps={episode_step}")
 
             for mlplay in self.mlplays:
                 if hasattr(mlplay, 'reset') and callable(getattr(mlplay, 'reset')):
                     try:
                         mlplay.reset()
                     except Exception as e:
-                        logger.exception(f"Error resetting MLPlay instance {mlplay.name}: {e}")
+                        recorder.exception(ErrorEnum.AI_EXEC_ERROR, f"Error resetting MLPlay instance {mlplay.name}: {e}")
         
         return
     
@@ -129,11 +135,11 @@ class GameRunner:
                 behavior_name = self.mlplay_to_behavior_map.get(i)
                 
                 if behavior_name is None:
-                    logger.warning(f"No behavior name mapped for MLPlay instance {i}. Skipping.")
+                    recorder.warning(f"No behavior name mapped for MLPlay instance {i}. Skipping.")
                     continue
 
                 if behavior_name not in observations:
-                    logger.warning(f"Behavior name {behavior_name} not found in observations. Skipping.")
+                    recorder.warning(f"Behavior name {behavior_name} not found in observations. Skipping.")
                     continue
                 
                 # Get keyboard state if available
@@ -168,7 +174,7 @@ class GameRunner:
                     continue
                 futures.append((future, i))
             else:
-                logger.warning(f"MLPlay instance {i+1} does not have an update method.")
+                recorder.warning(f"MLPlay instance {i+1} does not have an update method.")
         
         # Wait for all futures to complete with timeout
         actions = {}  # Initialize with None
@@ -183,7 +189,7 @@ class GameRunner:
                 action = future.result(timeout=self.mlplay_timeout)
                 # Use a default action if the MLPlay instance returns None
                 if action is None:
-                    logger.warning(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
+                    recorder.warning(f"MLPlay {self.mlplay_names[i]} returned None. Using default action.")
                     action_spec = self.env.get_action_space_info(behavior_name)
                     if action_spec.is_continuous():
                         action = np.zeros(action_spec.continuous_size)
@@ -197,7 +203,7 @@ class GameRunner:
                         )
                 actions[behavior_name] = [action]
             except TimeoutError:
-                logger.warning(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
+                recorder.warning(f"MLPlay {self.mlplay_names[i]} timed out after {self.mlplay_timeout:.3f}s. Using default action.")
                 # Cancel the future to prevent it from continuing to run in the background
                 future.cancel()
                 # Use a default action if the MLPlay instance times out
@@ -213,7 +219,7 @@ class GameRunner:
                         np.zeros(action_spec.discrete_size, dtype=np.int32)
                     )]
             except Exception as e:
-                logger.exception(f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
+                recorder.exception(ErrorEnum.AI_EXEC_ERROR, f"Error updating MLPlay {self.mlplay_names[i]}: {e}")
                 # Use a default action if the MLPlay instance fails
                 action_spec = self.env.get_action_space_info(behavior_name)
                 if action_spec.is_continuous():

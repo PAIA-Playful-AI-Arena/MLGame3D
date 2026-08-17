@@ -9,7 +9,7 @@ import json
 from typing import Dict, Any
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
 
 class GameParametersSideChannel(SideChannel):
     """
@@ -46,9 +46,9 @@ class GameParametersSideChannel(SideChannel):
             try:
                 params_json = message[len("CURRENT_PARAMETERS:"):]
                 received_params = json.loads(params_json)
-                logger.info(f"Current game parameters: {received_params}")
+                print(f"Current game parameters: {received_params}")
             except json.JSONDecodeError:
-                logger.error(f"Error parsing parameters JSON: {params_json}")
+                recorder.error(ErrorEnum.GAME_EXEC_ERROR, f"Error parsing parameters JSON: {params_json}")
     
     def set_parameter(self, key: str, value: Any) -> None:
         """

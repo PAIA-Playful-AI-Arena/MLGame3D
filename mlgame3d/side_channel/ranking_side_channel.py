@@ -11,7 +11,7 @@ import pandas as pd
 import os
 from mlagents_envs.side_channel import SideChannel, IncomingMessage, OutgoingMessage
 
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
 
 class RankingSideChannel(SideChannel):
     """
@@ -70,7 +70,7 @@ class RankingSideChannel(SideChannel):
                 # Print the ranking table
                 self.print_ranking_table()
             except json.JSONDecodeError:
-                logger.error(f"Error decoding JSON: {json_str}")
+                recorder.error(ErrorEnum.GAME_EXEC_ERROR, f"Error decoding JSON: {json_str}")
     
     def request_ranking_data(self) -> None:
         """
@@ -82,7 +82,7 @@ class RankingSideChannel(SideChannel):
             outgoing_msg.write_string("REQUEST_RANKING_DATA")
             self.queue_message_to_send(outgoing_msg)
             self.has_requested_data = True
-            logger.info("Requested ranking data from Unity")
+            print("Requested ranking data from Unity")
     
     def has_ranking_data(self) -> bool:
         """
@@ -139,12 +139,12 @@ class RankingSideChannel(SideChannel):
         If result_output_file is set, also save the result data to the file.
         """
         if not self.has_ranking_data():
-            logger.warning("No ranking data available.")
+            recorder.warning("No ranking data available.")
             return
 
         rankings = self.ranking_data.get("rankings", [])
         if not rankings:
-            logger.warning("No player rankings available.")
+            recorder.warning("No player rankings available.")
             return
         
         # Convert rankings to pandas DataFrame
@@ -157,8 +157,8 @@ class RankingSideChannel(SideChannel):
             df = df.sort_values('sort_key')
             df = df.drop('sort_key', axis=1)
         
-        # Log the DataFrame
-        logger.info(f"Ranking table:\n{df.to_string(index=False)}")
+        # Print the DataFrame
+        print(df.to_string(index=False))
         
         # Save to file if output file is specified
         if self.result_output_file:
@@ -199,9 +199,9 @@ class RankingSideChannel(SideChannel):
             
             # Save to CSV file (append mode if file exists)
             df.to_csv(self.result_output_file, mode='a', index=False, header=not file_exists)
-            logger.info(f"Result data appended to {self.result_output_file}")
+            print(f"Result data appended to {self.result_output_file}")
         except Exception as e:
-            logger.exception(f"Error saving ranking data to file: {e}")
+            recorder.exception(ErrorEnum.GAME_EXEC_ERROR, f"Error saving ranking data to file: {e}")
     
     def set_result_output_file(self, file_path: str) -> None:
         """

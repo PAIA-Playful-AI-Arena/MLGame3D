@@ -5,6 +5,7 @@ This module provides the command-line interface for the MLGame3D framework.
 """
 
 import argparse
+import datetime
 import sys
 import os
 from typing import List, Optional
@@ -14,7 +15,8 @@ from mlgame3d.game_env import GameEnvironment
 from mlgame3d.mlplay import RandomMLPlay
 from mlgame3d.game_runner import GameRunner
 from mlgame3d.mlplay_loader import create_mlplay_from_file, validate_mlplay_file
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
+from mlgame3d.utils.io import check_folder_existed_and_readable_or_create
 from mlagents_envs.exception import UnityCommunicatorStoppedException
 
 # Set environment variables to suppress gRPC warnings
@@ -164,11 +166,11 @@ def parse_args(args: Optional[List[str]] = None) -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--debug",
-        action="store_true",
-        dest="is_debug",
-        default=False,
-        help="show all debug info in console and record them in debug.log"
+        "--record-folder", "-r",
+        type=os.path.abspath,
+        default=None,
+        help="Folder where warning.json and error.json will be saved. "
+             "A timestamp sub-folder will be created inside it for each run."
     )
 
     return parser.parse_args(args)
@@ -252,22 +254,20 @@ def main(args: Optional[List[str]] = None) -> int:
     """
     parsed_args = parse_args(args)
 
-    if parsed_args.is_debug:
-        # Replace the default INFO stdout sink with a DEBUG one so messages are not printed twice
-        logger.remove()
-        logger.add(sys.stdout, level="DEBUG")
-        logger.add(
-            "debug.log",
-            level="DEBUG",
-            rotation="10 MB",  # Rotate after the log file reaches 10 MB
-            retention=1,  # Keep only the most recent rotated log file
-            compression=None,  # Do not compress the log file
-        )
-
     # Process AI settings
     ai_settings, ai_names = process_ai_settings(parsed_args)
 
     try:
+        # Set up the record folder for warning.json / error.json
+        if parsed_args.record_folder:
+            record_folder = os.path.join(
+                parsed_args.record_folder,
+                datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            )
+            check_folder_existed_and_readable_or_create(record_folder)
+            recorder.set_record_folder(record_folder)
+            print(f"Warnings and errors will be recorded in {record_folder}")
+
         # Validate MLPlay-related arguments
         validate_mlplay_args(parsed_args)
 
@@ -357,14 +357,14 @@ def main(args: Optional[List[str]] = None) -> int:
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1
                         except Exception as e:
-                            logger.exception(f"Error creating MLPlay instance from file {setting}: {e}")
-                            logger.warning(f"Using RandomMLPlay for player {player_idx+1} instead.")
+                            recorder.exception(ErrorEnum.AI_INIT_ERROR, f"Error creating MLPlay instance from file {setting}: {e}")
+                            recorder.warning(f"Using RandomMLPlay for player {player_idx+1} instead.")
                             mlplay = RandomMLPlay(action_space_info, name=f"RandomMLPlay{player_idx+1}")
                             mlplays.append(mlplay)
                             mlplay_to_behavior_map[mlplay_index] = behavior_name
                             mlplay_index += 1
                     else:
-                        logger.warning(f"Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
+                        recorder.warning(f"Player {player_idx+1} is not in the controlled players list or is not set to mlplay mode.")
             
             # Create a game runner
             # Calculate MLPlay timeout based on 20ms * decision period, adjusted by time scale
@@ -386,7 +386,7 @@ def main(args: Optional[List[str]] = None) -> int:
             return 0
         
         except UnityCommunicatorStoppedException:
-            logger.info("Unity environment stopped.")
+            print("Unity environment stopped.")
             return 0
             
         finally:
@@ -394,7 +394,7 @@ def main(args: Optional[List[str]] = None) -> int:
             env.close()
     
     except Exception as e:
-        logger.exception(f"Exception in {__file__} : {e.__str__()}")
+        recorder.exception(ErrorEnum.GAME_EXEC_ERROR, f"Exception in {__file__} : {e.__str__()}")
         return 1
 
 if __name__ == "__main__":

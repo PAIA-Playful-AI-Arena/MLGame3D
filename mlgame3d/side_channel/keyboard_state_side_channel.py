@@ -9,7 +9,7 @@ import json
 from typing import Set
 from mlagents_envs.side_channel import SideChannel, IncomingMessage
 
-from mlgame3d.utils.logger import logger
+from mlgame3d.recorder import ErrorEnum, recorder
 
 class KeyboardStateSideChannel(SideChannel):
     """
@@ -55,7 +55,7 @@ class KeyboardStateSideChannel(SideChannel):
                 else:
                     self.has_changed = False
         except json.JSONDecodeError:
-            logger.error(f"Error decoding JSON: {json_str}")
+            recorder.error(ErrorEnum.GAME_EXEC_ERROR, f"Error decoding JSON: {json_str}")
     
     def get_pressed_keys(self) -> Set[str]:
         """
